@@ -81,6 +81,13 @@ public class ScoreGroup extends JPanel implements Resettable {
         this.score.setText("");
     }
 
+    @Override
+    public void setEnabled(boolean b) {
+        super.setEnabled(b);
+        if (text != null)  text.setEnabled(b);
+        if (score != null) score.setEnabled(b);
+    }
+
     public void setText(String s) {
         this.text.setText(s);
     }

@@ -152,7 +152,7 @@ public class Game {
         return true;
     }
 
-    private int[] getDiceValues() {
+    public int[] getDiceValues() {
         int[] values = new int[5];
         for (int i = 0; i < 5; i++) {
             values[i] = dice[i].getValue();

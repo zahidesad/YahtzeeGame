@@ -1,7 +1,12 @@
 package yahtzee.controller;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import yahtzee.YahtzeeFrame;
 import yahtzee.model.Game;
+import yahtzee.network.Message;
+import yahtzee.network.MessageType;
+import yahtzee.network.NetworkClient;
 import yahtzee.view.YahtzeeDice;
 import yahtzee.view.ScoreGroup;
 import yahtzee.view.StaticScoreGroup;
@@ -24,10 +29,13 @@ public class GameController {
     private JButton newGameButton;
     private List<Integer> normalSelectable;
     private List<Integer> overrideSelectable;
+    private final NetworkClient net;
+    private boolean myTurn = false;
 
-    public GameController(Game game, YahtzeeFrame view) {
+    public GameController(Game game, YahtzeeFrame view, NetworkClient net) {
         this.game = game;
         this.view = view;
+        this.net = net;
         diceComponents = view.getDiceComponents();
         scoreGroups = view.getScoreGroups();
         upperSectionBonus = view.getUpperSectionBonus();
@@ -49,6 +57,7 @@ public class GameController {
             diceComponents[i].addMouseListener(new MouseAdapter() {
                 @Override
                 public void mousePressed(MouseEvent e) {
+                    if (!myTurn) return;
                     game.getDice()[index].setHeld(!game.getDice()[index].isHeld());
                     diceComponents[index].setHoldState(game.getDice()[index].isHeld());
                 }
@@ -85,33 +94,52 @@ public class GameController {
     }
 
     private void rollDice() {
+        if (!myTurn) return;
+
+
         game.rollDice();
         updateDiceDisplays();
-        normalSelectable = game.getNormalSelectableCategories();
+        normalSelectable   = game.getNormalSelectableCategories();
         overrideSelectable = game.getOverrideSelectableCategories();
         updateSelectableCategories();
         updateStaticScores();
-        if (game.getRollCount() == 3) {
-            rollDiceButton.setEnabled(false);
-        }
+
+        JsonObject payload = new JsonObject();
+        payload.addProperty("count", game.getRollCount());
+        net.send(new Message(MessageType.ROLL, payload));
+
+        if (game.getRollCount() == 3) rollDiceButton.setEnabled(false);
     }
+
 
     private void selectCategory(int index) {
         boolean useOverride = overrideSelectable.contains(index);
+
         game.selectCategory(index, useOverride);
+        int scored = game.getScoreCard().getEntry(index).getScore();
         scoreGroups[index].setChosen(true);
-        scoreGroups[index].setScore(game.getScoreCard().getEntry(index).getScore());
+        scoreGroups[index].setScore(scored);
         updateStaticScores();
-        if (game.isGameOver()) {
-            showFinalScorePrompt();
-        } else {
-            for (ScoreGroup sg : scoreGroups) {
-                sg.setCanBeSelected(false, false);
-            }
-            rollDiceButton.setEnabled(true);
-            game.setRollCount(0);
-        }
+
+
+        JsonObject p = new JsonObject();
+        p.addProperty("category", index);
+        p.addProperty("override", useOverride);
+        p.addProperty("score", scored);
+        p.addProperty("upper", game.getPlayer().getUpperScore());
+        p.addProperty("upperBonus", game.getPlayer().getUpperBonus());
+        p.addProperty("yahtzeeBonus", game.getPlayer().getYahtzeeBonus());
+        p.addProperty("grand", game.getPlayer().getScore());
+        net.send(new Message(MessageType.SELECT, p));
+
+
+        setMyTurn(false);
+        rollDiceButton.setEnabled(false);
+        game.setRollCount(0);
+
+        if (game.isGameOver()) showFinalScorePrompt();
     }
+
 
     private void newGame() {
         game.reset();
@@ -159,4 +187,52 @@ public class GameController {
             newGame();
         }
     }
+
+    public void setMyTurn(boolean t) {
+        myTurn = t;
+        rollDiceButton.setEnabled(t);
+        for (ScoreGroup sg : scoreGroups) {
+            sg.setEnabled(t);
+        }
+    }
+
+    public void applyRemote(Message m) {
+        Gson g = new Gson();
+
+        switch (m.type()) {
+
+
+            case ROLL -> { }
+
+
+            case SELECT -> {
+                JsonObject o = m.payload() instanceof JsonObject
+                        ? (JsonObject) m.payload()
+                        : g.fromJson(m.payload().toString(), JsonObject.class);
+
+                int cat  = o.get("category").getAsInt();
+                int scr  = o.get("score").getAsInt();
+
+
+                scoreGroups[cat].setChosen(true);
+                scoreGroups[cat].setScore(scr);
+                upperSectionTotal.setScore(o.get("upper").getAsInt());
+                upperSectionBonus.setScore(o.get("upperBonus").getAsInt());
+                lowerSectionYahtzeeBonus.setScore(o.get("yahtzeeBonus").getAsInt());
+                grandTotal.setScore(o.get("grand").getAsInt());
+
+
+                game.setRollCount(0);
+                for (ScoreGroup sg : scoreGroups) sg.setCanBeSelected(false, false);
+
+                setMyTurn(true);
+                rollDiceButton.setEnabled(true);
+            }
+
+            default -> {}
+        }
+    }
+
+
+
 }
