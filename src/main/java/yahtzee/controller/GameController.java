@@ -27,8 +27,9 @@ public class GameController {
     private StaticScoreGroup grandTotal;
     private JButton rollDiceButton;
     private JButton newGameButton;
-    private List<Integer> normalSelectable;
-    private List<Integer> overrideSelectable;
+    private List<Integer> normalSelectable = java.util.Collections.emptyList();
+    private List<Integer> overrideSelectable = java.util.Collections.emptyList();
+    private int opponentGrandTotal = 0;
     private final NetworkClient net;
     private boolean myTurn = false;
 
@@ -85,7 +86,7 @@ public class GameController {
                 }
                 @Override
                 public void mousePressed(MouseEvent e) {
-                    if (scoreGroups[index].getCanBeSelected() && !scoreGroups[index].getChosen()) {
+                    if (myTurn && scoreGroups[index].getCanBeSelected() && !scoreGroups[index].getChosen()) {
                         selectCategory(index);
                     }
                 }
@@ -130,6 +131,7 @@ public class GameController {
         p.addProperty("upperBonus", game.getPlayer().getUpperBonus());
         p.addProperty("yahtzeeBonus", game.getPlayer().getYahtzeeBonus());
         p.addProperty("grand", game.getPlayer().getScore());
+        p.addProperty("gameOver", game.isGameOver());
         net.send(new Message(MessageType.SELECT, p));
 
 
@@ -137,7 +139,9 @@ public class GameController {
         rollDiceButton.setEnabled(false);
         game.setRollCount(0);
 
-        if (game.isGameOver()) showFinalScorePrompt();
+        normalSelectable   = game.getNormalSelectableCategories();
+        overrideSelectable = game.getOverrideSelectableCategories();
+        updateSelectableCategories();
     }
 
 
@@ -198,37 +202,20 @@ public class GameController {
 
     public void applyRemote(Message m) {
         Gson g = new Gson();
-
         switch (m.type()) {
-
-
             case ROLL -> { }
-
-
             case SELECT -> {
                 JsonObject o = m.payload() instanceof JsonObject
                         ? (JsonObject) m.payload()
                         : g.fromJson(m.payload().toString(), JsonObject.class);
-
-                int cat  = o.get("category").getAsInt();
-                int scr  = o.get("score").getAsInt();
-
-
-                scoreGroups[cat].setChosen(true);
-                scoreGroups[cat].setScore(scr);
-                upperSectionTotal.setScore(o.get("upper").getAsInt());
-                upperSectionBonus.setScore(o.get("upperBonus").getAsInt());
-                lowerSectionYahtzeeBonus.setScore(o.get("yahtzeeBonus").getAsInt());
-                grandTotal.setScore(o.get("grand").getAsInt());
-
+                opponentGrandTotal = o.get("grand").getAsInt();
 
                 game.setRollCount(0);
                 for (ScoreGroup sg : scoreGroups) sg.setCanBeSelected(false, false);
-
                 setMyTurn(true);
                 rollDiceButton.setEnabled(true);
-            }
 
+            }
             default -> {}
         }
     }

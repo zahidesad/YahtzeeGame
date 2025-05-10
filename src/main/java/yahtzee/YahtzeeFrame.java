@@ -37,8 +37,8 @@ public class YahtzeeFrame extends JFrame {
         super("Yahtzee Game");
         setLayout(new FlowLayout(FlowLayout.CENTER, 20, 20));
         Game game = new Game("Sebastian");
-        String ip   = JOptionPane.showInputDialog(this,"AWS IP:");
-        String nick = JOptionPane.showInputDialog(this,"Nick:");
+        String ip = JOptionPane.showInputDialog(this, "AWS IP:");
+        String nick = JOptionPane.showInputDialog(this, "Nick:");
         NetworkClient net = new NetworkClient(ip, 55555, nick, this::handleNetwork);
         diceComponents = new YahtzeeDice[5];
         for (int i = 0; i < 5; i++) {
@@ -56,18 +56,29 @@ public class YahtzeeFrame extends JFrame {
     }
 
     private void handleNetwork(Message msg) {
-        switch (msg.type()) {
-            case MATCHED -> {
-                boolean iStart = new Gson().fromJson(msg.payload().toString(),
-                        JsonObject.class).get("yourTurn").getAsBoolean();
-                controller.setMyTurn(iStart);
-                JOptionPane.showMessageDialog(this,
-                        iStart ? "Eşleştin, sen başlıyorsun!" : "Eşleştin, rakibi bekle...");
+        SwingUtilities.invokeLater(() -> {
+            switch (msg.type()) {
+                case MATCHED -> {
+                    boolean iStart = new Gson().fromJson(msg.payload().toString(),
+                            JsonObject.class).get("yourTurn").getAsBoolean();
+                    controller.setMyTurn(iStart);
+                    JOptionPane.showMessageDialog(this,
+                            iStart ? "Eşleştin, sen başlıyorsun!" : "Eşleştin, rakibi bekle...");
+                }
+                case ROLL, SELECT, UPDATE -> controller.applyRemote(msg);
+                case END -> {
+                    JsonObject result = new Gson().fromJson(msg.payload().toString(), JsonObject.class);
+                    String message = "Oyun bitti!\n" +
+                            "Senin puanın: " + result.get("yourScore").getAsInt() + "\n" +
+                            "Rakibin puanı: " + result.get("opponentScore").getAsInt() + "\n" +
+                            "Kazanan: " + result.get("winner").getAsString();
+                    JOptionPane.showMessageDialog(this, message);
+                }
+                default -> {
+                }
             }
-            case ROLL, SELECT, UPDATE -> controller.applyRemote(msg);
-            case END -> JOptionPane.showMessageDialog(this, "Oyun bitti!");
-            default -> {}
-        }
+
+        });
     }
 
     public YahtzeeDice[] getDiceComponents() {
