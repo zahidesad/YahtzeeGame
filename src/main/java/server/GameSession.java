@@ -38,7 +38,9 @@ final class GameSession implements Runnable {
                     continue;
                 }
                 Message m = current.read();
-                other.send(m);
+                if (m.type() == MessageType.SELECT || m.type() == MessageType.ROLL) {
+                    other.send(m);
+                }
                 if (m.type() == MessageType.SELECT) {
                     JsonObject payload = gson.fromJson(m.payload().toString(), JsonObject.class);
                     boolean gameOver = payload.get("gameOver").getAsBoolean();

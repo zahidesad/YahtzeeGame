@@ -21,6 +21,8 @@ C:\Users\zahid\IdeaProjects\YahtzeeGame\src\main\java\yahtzee\model\ScoreEntry.j
 C:\Users\zahid\IdeaProjects\YahtzeeGame\src\main\java\yahtzee\network\Message.java
 C:\Users\zahid\IdeaProjects\YahtzeeGame\src\main\java\yahtzee\network\MessageType.java
 C:\Users\zahid\IdeaProjects\YahtzeeGame\src\main\java\yahtzee\network\NetworkClient.java
+C:\Users\zahid\IdeaProjects\YahtzeeGame\src\main\java\yahtzee\view\GamePanel.java
+C:\Users\zahid\IdeaProjects\YahtzeeGame\src\main\java\yahtzee\view\LobbyPanel.java
 C:\Users\zahid\IdeaProjects\YahtzeeGame\src\main\java\yahtzee\view\Resettable.java
 C:\Users\zahid\IdeaProjects\YahtzeeGame\src\main\java\yahtzee\view\ScoreBoard.java
 C:\Users\zahid\IdeaProjects\YahtzeeGame\src\main\java\yahtzee\view\ScoreGroup.java

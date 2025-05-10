@@ -10,6 +10,7 @@ import yahtzee.network.NetworkClient;
 import yahtzee.view.YahtzeeDice;
 import yahtzee.view.ScoreGroup;
 import yahtzee.view.StaticScoreGroup;
+
 import javax.swing.JButton;
 import javax.swing.JOptionPane;
 import java.awt.event.MouseAdapter;
@@ -33,18 +34,21 @@ public class GameController {
     private final NetworkClient net;
     private boolean myTurn = false;
 
-    public GameController(Game game, YahtzeeFrame view, NetworkClient net) {
+    public GameController(Game game, YahtzeeFrame view, YahtzeeDice[] diceComponents, ScoreGroup[] scoreGroups,
+                          StaticScoreGroup upperSectionBonus, StaticScoreGroup upperSectionTotal,
+                          StaticScoreGroup lowerSectionYahtzeeBonus, StaticScoreGroup grandTotal,
+                          JButton rollDiceButton, JButton newGameButton, NetworkClient net) {
         this.game = game;
         this.view = view;
         this.net = net;
-        diceComponents = view.getDiceComponents();
-        scoreGroups = view.getScoreGroups();
-        upperSectionBonus = view.getUpperSectionBonus();
-        upperSectionTotal = view.getUpperSectionTotal();
-        lowerSectionYahtzeeBonus = view.getLowerSectionYahtzeeBonus();
-        grandTotal = view.getGrandTotal();
-        rollDiceButton = view.getRollDiceButton();
-        newGameButton = view.getNewGameButton();
+        this.diceComponents = diceComponents;
+        this.scoreGroups = scoreGroups;
+        this.upperSectionBonus = upperSectionBonus;
+        this.upperSectionTotal = upperSectionTotal;
+        this.lowerSectionYahtzeeBonus = lowerSectionYahtzeeBonus;
+        this.grandTotal = grandTotal;
+        this.rollDiceButton = rollDiceButton;
+        this.newGameButton = newGameButton;
 
         addDiceListeners();
         addScoreGroupListeners();
@@ -78,12 +82,14 @@ public class GameController {
                         scoreGroups[index].setText(scoreGroups[index].getCategoryName() + " (" + score + ")");
                     }
                 }
+
                 @Override
                 public void mouseExited(MouseEvent e) {
                     if (!scoreGroups[index].getChosen()) {
                         scoreGroups[index].setTextToCategory();
                     }
                 }
+
                 @Override
                 public void mousePressed(MouseEvent e) {
                     if (myTurn && scoreGroups[index].getCanBeSelected() && !scoreGroups[index].getChosen()) {
@@ -100,7 +106,7 @@ public class GameController {
 
         game.rollDice();
         updateDiceDisplays();
-        normalSelectable   = game.getNormalSelectableCategories();
+        normalSelectable = game.getNormalSelectableCategories();
         overrideSelectable = game.getOverrideSelectableCategories();
         updateSelectableCategories();
         updateStaticScores();
@@ -139,7 +145,7 @@ public class GameController {
         rollDiceButton.setEnabled(false);
         game.setRollCount(0);
 
-        normalSelectable   = game.getNormalSelectableCategories();
+        normalSelectable = game.getNormalSelectableCategories();
         overrideSelectable = game.getOverrideSelectableCategories();
         updateSelectableCategories();
     }
@@ -203,7 +209,8 @@ public class GameController {
     public void applyRemote(Message m) {
         Gson g = new Gson();
         switch (m.type()) {
-            case ROLL -> { }
+            case ROLL -> {
+            }
             case SELECT -> {
                 JsonObject o = m.payload() instanceof JsonObject
                         ? (JsonObject) m.payload()
@@ -216,10 +223,10 @@ public class GameController {
                 rollDiceButton.setEnabled(true);
 
             }
-            default -> {}
+            default -> {
+            }
         }
     }
-
 
 
 }

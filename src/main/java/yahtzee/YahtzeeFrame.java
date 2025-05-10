@@ -6,83 +6,82 @@ import yahtzee.controller.GameController;
 import yahtzee.model.Game;
 import yahtzee.network.Message;
 import yahtzee.network.NetworkClient;
-import yahtzee.view.ScoreGroup;
-import yahtzee.view.YahtzeeDice;
-import yahtzee.view.ScoreBoard;
-import yahtzee.view.StaticScoreGroup;
+import yahtzee.view.*;
 
 import javax.swing.*;
-import java.awt.FlowLayout;
-import java.awt.Font;
+import java.awt.*;
 import java.io.IOException;
 
 public class YahtzeeFrame extends JFrame {
+    private CardLayout cardLayout;
+    private JPanel mainPanel;
+    private LobbyPanel lobbyPanel;
+    private GamePanel gamePanel;
+    private Game game;
+    private NetworkClient net;
     private GameController controller;
-    private static final long serialVersionUID = 1L;
-    private YahtzeeDice[] diceComponents;
-    private ScoreBoard scoreBoard;
-    private JButton rollDiceButton;
-    private JButton newGameButton;
 
-    public static void main(String[] args) throws IOException {
-        SwingUtilities.invokeLater(() -> {
+
+    public YahtzeeFrame() {
+        super("Yahtzee Oyunu");
+        cardLayout = new CardLayout();
+        mainPanel = new JPanel(cardLayout);
+        lobbyPanel = new LobbyPanel();
+        mainPanel.add(lobbyPanel, "lobby");
+        add(mainPanel);
+        cardLayout.show(mainPanel, "lobby");
+
+        lobbyPanel.addFindGameListener(e -> {
+            String ip = lobbyPanel.getIp();
+            String nick = lobbyPanel.getNick();
+            if (ip.isEmpty() || nick.isEmpty()) {
+                lobbyPanel.setStatus("Lütfen IP ve takma ad girin.");
+                return;
+            }
             try {
-                YahtzeeFrame frame = new YahtzeeFrame();
-                frame.setVisible(true);
-                frame.setSize(815, 545);
-                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                frame.setResizable(false);
-                frame.setLocationRelativeTo(null);
-            } catch (Exception e) {
-                e.printStackTrace();
+                net = new NetworkClient(ip, 55555, nick, this::handleNetwork);
+                lobbyPanel.setStatus("Başka bir oyuncu bekleniyor...");
+            } catch (IOException ex) {
+                lobbyPanel.setStatus("Bağlantı hatası: " + ex.getMessage());
             }
         });
-    }
 
-    public YahtzeeFrame() throws IOException {
-        super("Yahtzee Game");
-        setLayout(new FlowLayout(FlowLayout.CENTER, 20, 20));
-        Game game = new Game("Sebastian");
-        String ip = JOptionPane.showInputDialog(this, "AWS IP:");
-        String nick = JOptionPane.showInputDialog(this, "Nick:");
-        NetworkClient net = new NetworkClient(ip, 55555, nick, this::handleNetwork);
-        diceComponents = new YahtzeeDice[5];
-        for (int i = 0; i < 5; i++) {
-            diceComponents[i] = new YahtzeeDice(100);
-            add(diceComponents[i]);
-        }
-        scoreBoard = new ScoreBoard();
-        add(scoreBoard);
-        rollDiceButton = new JButton("Roll Dice");
-        rollDiceButton.setFont(new Font(rollDiceButton.getFont().getFontName(), Font.PLAIN, 20));
-        add(rollDiceButton);
-        newGameButton = new JButton("New Game");
-        add(newGameButton);
-        controller = new GameController(game, this, net);
+        setSize(815, 545);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setResizable(false);
+        setLocationRelativeTo(null);
+        setVisible(true);
     }
 
     private void handleNetwork(Message msg) {
         SwingUtilities.invokeLater(() -> {
-            if (controller==null){
-                System.err.println("Controller null, mesaj erken alındı: " + msg);
-                return;
-            }
             switch (msg.type()) {
                 case MATCHED -> {
                     boolean iStart = new Gson().fromJson(msg.payload().toString(),
                             JsonObject.class).get("yourTurn").getAsBoolean();
+                    game = new Game(lobbyPanel.getNick());
+                    gamePanel = new GamePanel(game, net, this);
+                    mainPanel.add(gamePanel, "game");
+                    cardLayout.show(mainPanel, "game");
+                    controller = gamePanel.getController();
                     controller.setMyTurn(iStart);
                     JOptionPane.showMessageDialog(this,
                             iStart ? "Eşleştin, sen başlıyorsun!" : "Eşleştin, rakibi bekle...");
                 }
-                case ROLL, SELECT, UPDATE -> controller.applyRemote(msg);
+                case ROLL, SELECT, UPDATE -> {
+                    if (controller != null) {
+                        controller.applyRemote(msg);
+                    }
+                }
                 case END -> {
-                    JsonObject result = new Gson().fromJson(msg.payload().toString(), JsonObject.class);
-                    String message = "Oyun bitti!\n" +
-                            "Senin puanın: " + result.get("yourScore").getAsInt() + "\n" +
-                            "Rakibin puanı: " + result.get("opponentScore").getAsInt() + "\n" +
-                            "Kazanan: " + result.get("winner").getAsString();
-                    JOptionPane.showMessageDialog(this, message);
+                    if (controller != null) {
+                        JsonObject result = new Gson().fromJson(msg.payload().toString(), JsonObject.class);
+                        String message = "Oyun bitti!\n" +
+                                "Senin puanın: " + result.get("yourScore").getAsInt() + "\n" +
+                                "Rakibin puanı: " + result.get("opponentScore").getAsInt() + "\n" +
+                                "Kazanan: " + result.get("winner").getAsString();
+                        JOptionPane.showMessageDialog(this, message);
+                    }
                 }
                 default -> {
                 }
@@ -92,34 +91,38 @@ public class YahtzeeFrame extends JFrame {
     }
 
     public YahtzeeDice[] getDiceComponents() {
-        return diceComponents;
+        return gamePanel != null ? gamePanel.getDiceComponents() : null;
     }
 
     public ScoreGroup[] getScoreGroups() {
-        return scoreBoard.getScoreGroups();
+        return gamePanel != null ? gamePanel.getScoreGroups() : null;
     }
 
     public StaticScoreGroup getUpperSectionBonus() {
-        return scoreBoard.getUpperSectionBonus();
+        return gamePanel != null ? gamePanel.getUpperSectionBonus() : null;
     }
 
     public StaticScoreGroup getUpperSectionTotal() {
-        return scoreBoard.getUpperSectionTotal();
+        return gamePanel != null ? gamePanel.getUpperSectionTotal() : null;
     }
 
     public StaticScoreGroup getLowerSectionYahtzeeBonus() {
-        return scoreBoard.getLowerSectionYahtzeeBonus();
+        return gamePanel != null ? gamePanel.getLowerSectionYahtzeeBonus() : null;
     }
 
     public StaticScoreGroup getGrandTotal() {
-        return scoreBoard.getGrandTotal();
+        return gamePanel != null ? gamePanel.getGrandTotal() : null;
     }
 
     public JButton getRollDiceButton() {
-        return rollDiceButton;
+        return gamePanel != null ? gamePanel.getRollDiceButton() : null;
     }
 
     public JButton getNewGameButton() {
-        return newGameButton;
+        return gamePanel != null ? gamePanel.getNewGameButton() : null;
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(YahtzeeFrame::new);
     }
 }
