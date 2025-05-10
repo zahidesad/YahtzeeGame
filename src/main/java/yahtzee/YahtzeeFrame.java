@@ -25,12 +25,18 @@ public class YahtzeeFrame extends JFrame {
     private JButton newGameButton;
 
     public static void main(String[] args) throws IOException {
-        YahtzeeFrame frame = new YahtzeeFrame();
-        frame.setVisible(true);
-        frame.setSize(815, 545);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setResizable(false);
-        frame.setLocationRelativeTo(null);
+        SwingUtilities.invokeLater(() -> {
+            try {
+                YahtzeeFrame frame = new YahtzeeFrame();
+                frame.setVisible(true);
+                frame.setSize(815, 545);
+                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                frame.setResizable(false);
+                frame.setLocationRelativeTo(null);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     public YahtzeeFrame() throws IOException {
@@ -57,6 +63,10 @@ public class YahtzeeFrame extends JFrame {
 
     private void handleNetwork(Message msg) {
         SwingUtilities.invokeLater(() -> {
+            if (controller==null){
+                System.err.println("Controller null, mesaj erken alındı: " + msg);
+                return;
+            }
             switch (msg.type()) {
                 case MATCHED -> {
                     boolean iStart = new Gson().fromJson(msg.payload().toString(),
