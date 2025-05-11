@@ -5,7 +5,7 @@ import java.io.*;
 import java.util.concurrent.*;
 
 public class YahtzeeServer {
-    private static final int PORT = 55555;
+    private static final int PORT = 12345;
     private static final ConcurrentLinkedQueue<Socket> lobby = new ConcurrentLinkedQueue<>();
 
     public static void main(String[] args) throws IOException {

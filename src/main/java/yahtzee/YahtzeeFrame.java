@@ -39,7 +39,7 @@ public class YahtzeeFrame extends JFrame {
                 return;
             }
             try {
-                net = new NetworkClient(ip, 55555, nick, this::handleNetwork);
+                net = new NetworkClient(ip, 12345, nick, this::handleNetwork);
                 lobbyPanel.setStatus("Başka bir oyuncu bekleniyor...");
             } catch (IOException ex) {
                 lobbyPanel.setStatus("Bağlantı hatası: " + ex.getMessage());

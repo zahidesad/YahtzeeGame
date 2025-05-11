@@ -31,7 +31,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>yahtzee.server.YahtzeeServer</mainClass>
+                            <mainClass>server.YahtzeeServer</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
