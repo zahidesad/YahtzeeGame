@@ -8,7 +8,6 @@ import java.awt.event.ActionListener;
 public class LobbyPanel extends JPanel {
     private static final String SERVER_IP = "56.228.19.115";
 
-    private JTextField ipField;
     private JTextField nickField;
     private JButton findGameButton;
     private JLabel statusLabel;
@@ -63,7 +62,6 @@ public class LobbyPanel extends JPanel {
     }
 
     public void reset() {
-        ipField.setEnabled(true);
         nickField.setEnabled(true);
         findGameButton.setEnabled(true);
         setStatus(" ");
