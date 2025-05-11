@@ -1,6 +1,8 @@
 package server;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import yahtzee.network.*;
 import com.google.gson.Gson;
 
@@ -23,8 +25,11 @@ final class GameSession implements Runnable {
     @Override
     public void run() {
         try (p1; p2) {
-            p1.send(new Message(MessageType.MATCHED, "{\"yourTurn\":true}"));
-            p2.send(new Message(MessageType.MATCHED, "{\"yourTurn\":false}"));
+            JsonElement matchedPayloadP1 = JsonParser.parseString("{\"yourTurn\":true}");
+            JsonElement matchedPayloadP2 = JsonParser.parseString("{\"yourTurn\":false}");
+
+            p1.send(new Message(MessageType.MATCHED, matchedPayloadP1));
+            p2.send(new Message(MessageType.MATCHED, matchedPayloadP2));
             PlayerHandler current = p1;
             PlayerHandler other = p2;
             while (true) {

@@ -1,13 +1,18 @@
+server\YahtzeeServer.class
+yahtzee\view\GamePanel.class
 yahtzee\model\Categories\Category.class
 yahtzee\model\ScoreEntry.class
+server\PlayerHandler.class
 yahtzee\controller\GameController$2.class
 yahtzee\model\Categories\ThreeOfAKind.class
 yahtzee\model\Categories\FullHouse.class
+server\GameSession.class
 yahtzee\model\Categories\Bonus.class
 yahtzee\YahtzeeFrame.class
 yahtzee\model\ScoreCard.class
 yahtzee\model\Dice.class
 yahtzee\YahtzeeFrame$1.class
+yahtzee\network\Message.class
 yahtzee\view\ScoreGroup.class
 yahtzee\model\Categories\FourOfAKind.class
 yahtzee\view\YahtzeeDice.class
@@ -17,6 +22,9 @@ yahtzee\model\Categories\Yahtzee.class
 yahtzee\model\Categories\Total.class
 yahtzee\view\Resettable.class
 yahtzee\view\StaticScoreGroup.class
+yahtzee\network\MessageType.class
+yahtzee\view\LobbyPanel.class
+yahtzee\controller\GameController$3.class
 yahtzee\model\Categories\SmallStraight.class
 yahtzee\controller\GameController.class
 yahtzee\model\Categories\Chance.class
@@ -24,3 +32,4 @@ yahtzee\view\ScoreBoard.class
 yahtzee\model\Categories\UpperCategory.class
 yahtzee\controller\GameController$1.class
 yahtzee\model\Game.class
+yahtzee\network\NetworkClient.class

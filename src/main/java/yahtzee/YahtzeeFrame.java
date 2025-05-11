@@ -1,6 +1,7 @@
 package yahtzee;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import yahtzee.controller.GameController;
 import yahtzee.model.Game;
@@ -75,7 +76,7 @@ public class YahtzeeFrame extends JFrame {
                 }
                 case END -> {
                     if (controller != null) {
-                        JsonObject result = (JsonObject) msg.payload();
+                        JsonObject result = msg.payload().getAsJsonObject();
                         String message = "Oyun bitti!\n" +
                                 "Senin puanın: " + result.get("yourScore").getAsDouble() + "\n" +
                                 "Rakibin puanı: " + result.get("opponentScore").getAsDouble() + "\n" +
@@ -91,7 +92,6 @@ public class YahtzeeFrame extends JFrame {
                 default -> {
                 }
             }
-
         });
     }
 

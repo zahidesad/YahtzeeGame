@@ -6,6 +6,8 @@ import java.awt.*;
 import java.awt.event.ActionListener;
 
 public class LobbyPanel extends JPanel {
+    private static final String SERVER_IP = "56.228.19.115";
+
     private JTextField ipField;
     private JTextField nickField;
     private JButton findGameButton;
@@ -18,7 +20,6 @@ public class LobbyPanel extends JPanel {
         gbc.insets = new Insets(10, 10, 10, 10);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        ipField = new JTextField("localhost", 20);
         nickField = new JTextField("Player", 20);
         findGameButton = new JButton("Oyun Bul");
         statusLabel = new JLabel(" ", SwingConstants.CENTER);
@@ -26,19 +27,15 @@ public class LobbyPanel extends JPanel {
         gbc.gridx = 0;
         gbc.gridwidth = 2;
         gbc.gridy = 0;
-        add(new JLabel("Sunucu IP'si:"), gbc);
-        gbc.gridy = 1;
-        add(ipField, gbc);
-        gbc.gridy = 2;
         add(new JLabel("Takma Ad:"), gbc);
-        gbc.gridy = 3;
+        gbc.gridy = 1;
         add(nickField, gbc);
-        gbc.gridy = 4;
+        gbc.gridy = 2;
         add(findGameButton, gbc);
-        gbc.gridy = 5;
+        gbc.gridy = 3;
         add(statusLabel, gbc);
 
-        // Animasyon için timer
+
         animationTimer = new Timer(500, e -> {
             String current = statusLabel.getText();
             if (current.startsWith("Başka bir oyuncu bekleniyor")) {
@@ -49,7 +46,7 @@ public class LobbyPanel extends JPanel {
     }
 
     public String getIp() {
-        return ipField.getText().trim();
+        return SERVER_IP;
     }
 
     public String getNick() {

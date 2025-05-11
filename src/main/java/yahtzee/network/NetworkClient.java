@@ -1,6 +1,9 @@
 package yahtzee.network;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+
 import java.net.Socket;
 import java.io.*;
 import java.util.function.Consumer;
@@ -18,7 +21,8 @@ public class NetworkClient implements AutoCloseable, Runnable {
         out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
         this.onMsg = handler;
 
-        send(new Message(MessageType.HELLO, "{\"name\":\""+nickname+"\"}"));
+        JsonElement helloPayload = JsonParser.parseString("{\"name\":\"" + nickname + "\"}");
+        send(new Message(MessageType.HELLO, helloPayload));
         new Thread(this, "NetReader").start();
     }
 
