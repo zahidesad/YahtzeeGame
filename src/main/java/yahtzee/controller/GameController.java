@@ -1,8 +1,10 @@
 package yahtzee.controller;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import yahtzee.YahtzeeFrame;
+import yahtzee.model.Dice;
 import yahtzee.model.Game;
 import yahtzee.network.Message;
 import yahtzee.network.MessageType;
@@ -11,8 +13,7 @@ import yahtzee.view.YahtzeeDice;
 import yahtzee.view.ScoreGroup;
 import yahtzee.view.StaticScoreGroup;
 
-import javax.swing.JButton;
-import javax.swing.JOptionPane;
+import javax.swing.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
@@ -28,16 +29,22 @@ public class GameController {
     private StaticScoreGroup grandTotal;
     private JButton rollDiceButton;
     private JButton newGameButton;
+    private JButton concedeButton;
     private List<Integer> normalSelectable = java.util.Collections.emptyList();
     private List<Integer> overrideSelectable = java.util.Collections.emptyList();
     private int opponentGrandTotal = 0;
     private final NetworkClient net;
     private boolean myTurn = false;
+    private JLabel timerLabel;
+    private JLabel rollsLeftLabel;
+    private Timer timer;
+    private int timeLeft = 90;
 
     public GameController(Game game, YahtzeeFrame view, YahtzeeDice[] diceComponents, ScoreGroup[] scoreGroups,
                           StaticScoreGroup upperSectionBonus, StaticScoreGroup upperSectionTotal,
                           StaticScoreGroup lowerSectionYahtzeeBonus, StaticScoreGroup grandTotal,
-                          JButton rollDiceButton, JButton newGameButton, NetworkClient net) {
+                          JButton rollDiceButton, JButton newGameButton, JButton concedeButton,
+                          JLabel timerLabel, JLabel rollsLeftLabel, NetworkClient net) {
         this.game = game;
         this.view = view;
         this.net = net;
@@ -49,6 +56,10 @@ public class GameController {
         this.grandTotal = grandTotal;
         this.rollDiceButton = rollDiceButton;
         this.newGameButton = newGameButton;
+        this.concedeButton = concedeButton;
+        this.timerLabel = timerLabel;
+        this.rollsLeftLabel = rollsLeftLabel;
+        timer = new Timer(1000, e -> updateTimer());
 
         addDiceListeners();
         addScoreGroupListeners();
@@ -102,17 +113,19 @@ public class GameController {
 
     private void rollDice() {
         if (!myTurn) return;
-
-
         game.rollDice();
         updateDiceDisplays();
         normalSelectable = game.getNormalSelectableCategories();
         overrideSelectable = game.getOverrideSelectableCategories();
         updateSelectableCategories();
         updateStaticScores();
+        rollsLeftLabel.setText("ROLLS LEFT: " + (3 - game.getRollCount()));
 
         JsonObject payload = new JsonObject();
         payload.addProperty("count", game.getRollCount());
+        JsonArray diceValues = new JsonArray();
+        for (Dice d : game.getDice()) diceValues.add(d.getValue());
+        payload.add("dice", diceValues);
         net.send(new Message(MessageType.ROLL, payload));
 
         if (game.getRollCount() == 3) rollDiceButton.setEnabled(false);
@@ -198,32 +211,72 @@ public class GameController {
         }
     }
 
+    private void updateTimer() {
+        if (myTurn && timeLeft > 0) {
+            timeLeft--;
+            int minutes = timeLeft / 60;
+            int seconds = timeLeft % 60;
+            timerLabel.setText(String.format("MOVE TIME: %d:%02d", minutes, seconds));
+            if (timeLeft == 0) {
+                concedeTurn();
+            }
+        }
+    }
+
     public void setMyTurn(boolean t) {
         myTurn = t;
         rollDiceButton.setEnabled(t);
+        concedeButton.setEnabled(!t);
         for (ScoreGroup sg : scoreGroups) {
             sg.setEnabled(t);
         }
+        if (t) {
+            timeLeft = 90;
+            timer.start();
+        } else {
+            timer.stop();
+            timerLabel.setText("MOVE TIME: 1:30");
+        }
+        rollsLeftLabel.setText("ROLLS LEFT: " + (3 - game.getRollCount()));
+    }
+
+    private void concedeTurn() {
+        if (myTurn) return;
+        JsonObject payload = new JsonObject();
+        payload.addProperty("concede", true);
+        net.send(new Message(MessageType.SELECT, payload));
+        setMyTurn(true);
     }
 
     public void applyRemote(Message m) {
         Gson g = new Gson();
         switch (m.type()) {
             case ROLL -> {
+                JsonObject o = g.fromJson(m.payload().toString(), JsonObject.class);
+                int count = o.get("count").getAsInt();
+                JsonArray diceValues = o.get("dice").getAsJsonArray();
+                for (int i = 0; i < 5; i++) {
+                    game.getDice()[i].setValue(diceValues.get(i).getAsInt());
+                    game.getDice()[i].setHeld(false);
+                }
+                updateDiceDisplays();
             }
             case SELECT -> {
-                JsonObject o = m.payload() instanceof JsonObject
-                        ? (JsonObject) m.payload()
-                        : g.fromJson(m.payload().toString(), JsonObject.class);
+                JsonObject o = g.fromJson(m.payload().toString(), JsonObject.class);
+                int category = o.has("category") ? o.get("category").getAsInt() : -1;
+                int score = o.get("score").getAsInt();
                 opponentGrandTotal = o.get("grand").getAsInt();
-
+                if (category != -1) {
+                    view.getOpponentScoreGroups()[category].setChosen(true);
+                    view.getOpponentScoreGroups()[category].setScore(score);
+                    view.getOpponentUpperSectionTotal().setScore(o.get("upper").getAsInt());
+                    view.getOpponentUpperSectionBonus().setScore(o.get("upperBonus").getAsInt());
+                    view.getOpponentLowerSectionYahtzeeBonus().setScore(o.get("yahtzeeBonus").getAsInt());
+                    view.getOpponentGrandTotal().setScore(opponentGrandTotal);
+                }
                 game.setRollCount(0);
                 for (ScoreGroup sg : scoreGroups) sg.setCanBeSelected(false, false);
                 setMyTurn(true);
-                rollDiceButton.setEnabled(true);
-
-            }
-            default -> {
             }
         }
     }

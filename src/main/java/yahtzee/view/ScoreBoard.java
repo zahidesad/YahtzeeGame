@@ -1,62 +1,75 @@
 package yahtzee.view;
 
 
+import yahtzee.model.Categories.Category;
+
 import java.awt.Dimension;
 import java.awt.FlowLayout;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JPanel;
+import javax.swing.*;
 
 public class ScoreBoard extends JPanel implements Resettable {
-    private static final long serialVersionUID = 1L;
-    private ScoreGroup[] categories;
-    private JPanel higherCategories;
-    private JPanel lowerCategories;
-    private StaticScoreGroup upperSectionBonus;
-    private StaticScoreGroup upperSectionTotal;
-    private StaticScoreGroup lowerSectionYahtzeeBonus;
-    private StaticScoreGroup grandTotal;
+    private ScoreGroup[] playerCategories; // Kendi puanlarım
+    private ScoreGroup[] opponentCategories; // Rakibin puanları
+    private JPanel playerPanel;
+    private JPanel opponentPanel;
+    private StaticScoreGroup playerUpperSectionBonus, playerUpperSectionTotal;
+    private StaticScoreGroup playerLowerSectionYahtzeeBonus, playerGrandTotal;
+    private StaticScoreGroup opponentUpperSectionBonus, opponentUpperSectionTotal;
+    private StaticScoreGroup opponentLowerSectionYahtzeeBonus, opponentGrandTotal;
 
     public ScoreBoard() {
         this.setLayout(new FlowLayout(FlowLayout.CENTER, 10, 10));
-        this.setPreferredSize(new Dimension(750, 300));
-        categories = new ScoreGroup[13];
+        this.setPreferredSize(new Dimension(750, 500));
 
-        higherCategories = new JPanel();
-        higherCategories.setPreferredSize(new Dimension(350, 300));
-        higherCategories.setLayout(new BoxLayout(higherCategories, BoxLayout.Y_AXIS));
+        playerCategories = new ScoreGroup[13];
+        opponentCategories = new ScoreGroup[13];
 
-        lowerCategories = new JPanel();
-        lowerCategories.setPreferredSize(new Dimension(350, 300));
-        lowerCategories.setLayout(new BoxLayout(lowerCategories, BoxLayout.Y_AXIS));
+        playerPanel = new JPanel();
+        playerPanel.setPreferredSize(new Dimension(350, 500));
+        playerPanel.setLayout(new BoxLayout(playerPanel, BoxLayout.Y_AXIS));
+
+        opponentPanel = new JPanel();
+        opponentPanel.setPreferredSize(new Dimension(350, 500));
+        opponentPanel.setLayout(new BoxLayout(opponentPanel, BoxLayout.Y_AXIS));
 
         fillCategories();
         addCategories();
     }
 
     private void fillCategories() {
-        for (int i = 0; i < categories.length; i++) {
-            categories[i] = new ScoreGroup(yahtzee.model.Categories.Category.getCategory(i + 1));
+        for (int i = 0; i < 13; i++) {
+            playerCategories[i] = new ScoreGroup(Category.getCategory(i + 1));
+            opponentCategories[i] = new ScoreGroup(Category.getCategory(i + 1));
+            opponentCategories[i].setEnabled(false); // Rakip puanları tıklanamaz
         }
-        upperSectionBonus = new StaticScoreGroup("Upper Section Bonus");
-        upperSectionTotal = new StaticScoreGroup("Upper Total");
-        lowerSectionYahtzeeBonus = new StaticScoreGroup("Yahtzee Bonus");
-        grandTotal = new StaticScoreGroup("Grand Total");
+        playerUpperSectionBonus = new StaticScoreGroup("Upper Section Bonus");
+        playerUpperSectionTotal = new StaticScoreGroup("Upper Total");
+        playerLowerSectionYahtzeeBonus = new StaticScoreGroup("Yahtzee Bonus");
+        playerGrandTotal = new StaticScoreGroup("Grand Total");
+
+        opponentUpperSectionBonus = new StaticScoreGroup("Upper Section Bonus");
+        opponentUpperSectionTotal = new StaticScoreGroup("Upper Total");
+        opponentLowerSectionYahtzeeBonus = new StaticScoreGroup("Yahtzee Bonus");
+        opponentGrandTotal = new StaticScoreGroup("Grand Total");
     }
 
     private void addCategories() {
-        for (int i = 0; i < 6; i++) {
-            addCategory(higherCategories, categories[i]);
+        for (int i = 0; i < 13; i++) {
+            addCategory(playerPanel, playerCategories[i]);
+            addCategory(opponentPanel, opponentCategories[i]);
         }
-        addCategory(higherCategories, upperSectionBonus);
-        addCategory(higherCategories, upperSectionTotal);
-        for (int i = 6; i < categories.length; i++) {
-            addCategory(lowerCategories, categories[i]);
-        }
-        addCategory(lowerCategories, lowerSectionYahtzeeBonus);
-        addCategory(lowerCategories, grandTotal);
-        this.add(higherCategories);
-        this.add(lowerCategories);
+        addCategory(playerPanel, playerUpperSectionBonus);
+        addCategory(playerPanel, playerUpperSectionTotal);
+        addCategory(playerPanel, playerLowerSectionYahtzeeBonus);
+        addCategory(playerPanel, playerGrandTotal);
+
+        addCategory(opponentPanel, opponentUpperSectionBonus);
+        addCategory(opponentPanel, opponentUpperSectionTotal);
+        addCategory(opponentPanel, opponentLowerSectionYahtzeeBonus);
+        addCategory(opponentPanel, opponentGrandTotal);
+
+        this.add(playerPanel);
+        this.add(opponentPanel);
     }
 
     private void addCategory(JPanel panel, ScoreGroup group) {
@@ -64,34 +77,30 @@ public class ScoreBoard extends JPanel implements Resettable {
         panel.add(Box.createVerticalStrut(7));
     }
 
-    public ScoreGroup[] getScoreGroups() {
-        return categories;
-    }
+    public ScoreGroup[] getScoreGroups() {return playerCategories;}
+    public ScoreGroup[] getOpponentScoreGroups() {return opponentCategories;}
 
-    public StaticScoreGroup getUpperSectionBonus() {
-        return upperSectionBonus;
-    }
+    public StaticScoreGroup getUpperSectionBonus() { return playerUpperSectionBonus; }
+    public StaticScoreGroup getUpperSectionTotal() { return playerUpperSectionTotal; }
+    public StaticScoreGroup getLowerSectionYahtzeeBonus() { return playerLowerSectionYahtzeeBonus; }
+    public StaticScoreGroup getGrandTotal() { return playerGrandTotal; }
 
-    public StaticScoreGroup getUpperSectionTotal() {
-        return upperSectionTotal;
-    }
-
-    public StaticScoreGroup getLowerSectionYahtzeeBonus() {
-        return lowerSectionYahtzeeBonus;
-    }
-
-    public StaticScoreGroup getGrandTotal() {
-        return grandTotal;
-    }
+    public StaticScoreGroup getOpponentUpperSectionBonus() { return opponentUpperSectionBonus; }
+    public StaticScoreGroup getOpponentUpperSectionTotal() { return opponentUpperSectionTotal; }
+    public StaticScoreGroup getOpponentLowerSectionYahtzeeBonus() { return opponentLowerSectionYahtzeeBonus; }
+    public StaticScoreGroup getOpponentGrandTotal() { return opponentGrandTotal; }
 
     @Override
     public void reset() {
-        for (ScoreGroup category : categories) {
-            category.reset();
-        }
-        upperSectionBonus.reset();
-        upperSectionTotal.reset();
-        lowerSectionYahtzeeBonus.reset();
-        grandTotal.reset();
+        for (ScoreGroup category : playerCategories) category.reset();
+        for (ScoreGroup category : opponentCategories) category.reset();
+        playerUpperSectionBonus.reset();
+        playerUpperSectionTotal.reset();
+        playerLowerSectionYahtzeeBonus.reset();
+        playerGrandTotal.reset();
+        opponentUpperSectionBonus.reset();
+        opponentUpperSectionTotal.reset();
+        opponentLowerSectionYahtzeeBonus.reset();
+        opponentGrandTotal.reset();
     }
 }

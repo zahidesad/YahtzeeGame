@@ -13,7 +13,10 @@ public class GamePanel extends JPanel {
     private ScoreBoard scoreBoard;
     private JButton rollDiceButton;
     private JButton newGameButton;
+    private JButton concedeButton;
     private GameController controller;
+    private JLabel timerLabel;
+    private JLabel rollsLeftLabel;
 
     public GamePanel(Game game, NetworkClient net, YahtzeeFrame frame) {
         setLayout(new FlowLayout(FlowLayout.CENTER, 20, 20));
@@ -29,10 +32,17 @@ public class GamePanel extends JPanel {
         add(rollDiceButton);
         newGameButton = new JButton("Yeni Oyun");
         add(newGameButton);
+        concedeButton = new JButton("Concede");
+        concedeButton.setFont(new Font(rollDiceButton.getFont().getFontName(), Font.PLAIN, 20));
+        add(concedeButton);
+        timerLabel = new JLabel("MOVE TIME: 1:30");
+        rollsLeftLabel = new JLabel("ROLLS LEFT: 3");
+        add(timerLabel);
+        add(rollsLeftLabel);
         controller = new GameController(game, frame, diceComponents, scoreBoard.getScoreGroups(),
                 scoreBoard.getUpperSectionBonus(), scoreBoard.getUpperSectionTotal(),
                 scoreBoard.getLowerSectionYahtzeeBonus(), scoreBoard.getGrandTotal(),
-                rollDiceButton, newGameButton, net);
+                rollDiceButton, newGameButton, concedeButton, timerLabel, rollsLeftLabel,net);
     }
 
     public GameController getController() {
@@ -41,6 +51,14 @@ public class GamePanel extends JPanel {
 
     public YahtzeeDice[] getDiceComponents() {
         return diceComponents;
+    }
+
+    public ScoreGroup[] getOpponentScoreGroups() {
+        return scoreBoard.getOpponentScoreGroups();
+    }
+
+    public JButton getConcedeButton() {
+        return concedeButton;
     }
 
     public ScoreGroup[] getScoreGroups() {
@@ -69,5 +87,25 @@ public class GamePanel extends JPanel {
 
     public JButton getNewGameButton() {
         return newGameButton;
+    }
+
+    public JLabel getTimerLabel() { return timerLabel; }
+    public JLabel getRollsLeftLabel() { return rollsLeftLabel; }
+
+    public StaticScoreGroup getOpponentUpperSectionTotal() {
+        return scoreBoard.getOpponentUpperSectionTotal();
+    }
+
+    public StaticScoreGroup getOpponentUpperSectionBonus() {
+        return scoreBoard.getOpponentUpperSectionBonus();
+    }
+
+    public StaticScoreGroup getOpponentLowerSectionYahtzeeBonus() {
+        return scoreBoard.getOpponentLowerSectionYahtzeeBonus();
+    }
+
+
+    public StaticScoreGroup getOpponentGrandTotal() {
+        return scoreBoard.getOpponentGrandTotal();
     }
 }

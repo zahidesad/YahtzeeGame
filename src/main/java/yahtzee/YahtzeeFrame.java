@@ -46,9 +46,9 @@ public class YahtzeeFrame extends JFrame {
             }
         });
 
-        setSize(815, 545);
+        setSize(815, 745);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setResizable(false);
+        setResizable(true);
         setLocationRelativeTo(null);
         setVisible(true);
     }
@@ -92,6 +92,26 @@ public class YahtzeeFrame extends JFrame {
 
     public YahtzeeDice[] getDiceComponents() {
         return gamePanel != null ? gamePanel.getDiceComponents() : null;
+    }
+
+    public ScoreGroup[] getOpponentScoreGroups() {
+        return gamePanel != null ? gamePanel.getOpponentScoreGroups() : null;
+    }
+
+    public StaticScoreGroup getOpponentUpperSectionTotal() {
+        return gamePanel != null ? gamePanel.getOpponentUpperSectionTotal() : null;
+    }
+
+    public StaticScoreGroup getOpponentUpperSectionBonus() {
+        return gamePanel != null ? gamePanel.getOpponentUpperSectionBonus() : null;
+    }
+
+    public StaticScoreGroup getOpponentLowerSectionYahtzeeBonus() {
+        return gamePanel != null ? gamePanel.getOpponentLowerSectionYahtzeeBonus() : null;
+    }
+
+    public StaticScoreGroup getOpponentGrandTotal() {
+        return gamePanel != null ? gamePanel.getOpponentGrandTotal() : null;
     }
 
     public ScoreGroup[] getScoreGroups() {
