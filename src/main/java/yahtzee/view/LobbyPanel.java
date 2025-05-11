@@ -65,6 +65,13 @@ public class LobbyPanel extends JPanel {
         }
     }
 
+    public void reset() {
+        ipField.setEnabled(true);
+        nickField.setEnabled(true);
+        findGameButton.setEnabled(true);
+        setStatus(" ");
+    }
+
     public void addFindGameListener(ActionListener listener) {
         findGameButton.addActionListener(listener);
     }

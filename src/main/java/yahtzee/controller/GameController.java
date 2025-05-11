@@ -28,7 +28,6 @@ public class GameController {
     private StaticScoreGroup lowerSectionYahtzeeBonus;
     private StaticScoreGroup grandTotal;
     private JButton rollDiceButton;
-    private JButton newGameButton;
     private JButton concedeButton;
     private List<Integer> normalSelectable = java.util.Collections.emptyList();
     private List<Integer> overrideSelectable = java.util.Collections.emptyList();
@@ -43,7 +42,7 @@ public class GameController {
     public GameController(Game game, YahtzeeFrame view, YahtzeeDice[] diceComponents, ScoreGroup[] scoreGroups,
                           StaticScoreGroup upperSectionBonus, StaticScoreGroup upperSectionTotal,
                           StaticScoreGroup lowerSectionYahtzeeBonus, StaticScoreGroup grandTotal,
-                          JButton rollDiceButton, JButton newGameButton, JButton concedeButton,
+                          JButton rollDiceButton, JButton concedeButton,
                           JLabel timerLabel, JLabel rollsLeftLabel, NetworkClient net) {
         this.game = game;
         this.view = view;
@@ -55,7 +54,6 @@ public class GameController {
         this.lowerSectionYahtzeeBonus = lowerSectionYahtzeeBonus;
         this.grandTotal = grandTotal;
         this.rollDiceButton = rollDiceButton;
-        this.newGameButton = newGameButton;
         this.concedeButton = concedeButton;
         this.timerLabel = timerLabel;
         this.rollsLeftLabel = rollsLeftLabel;
@@ -64,7 +62,7 @@ public class GameController {
         addDiceListeners();
         addScoreGroupListeners();
         rollDiceButton.addActionListener(e -> rollDice());
-        newGameButton.addActionListener(e -> newGame());
+        concedeButton.addActionListener(e -> concedeTurn());
     }
 
     private void addDiceListeners() {
@@ -164,21 +162,6 @@ public class GameController {
     }
 
 
-    private void newGame() {
-        game.reset();
-        for (YahtzeeDice d : diceComponents) {
-            d.reset();
-        }
-        for (ScoreGroup sg : scoreGroups) {
-            sg.reset();
-        }
-        upperSectionBonus.reset();
-        upperSectionTotal.reset();
-        lowerSectionYahtzeeBonus.reset();
-        grandTotal.reset();
-        rollDiceButton.setEnabled(true);
-    }
-
     private void updateDiceDisplays() {
         for (int i = 0; i < 5; i++) {
             diceComponents[i].setValue(game.getDice()[i].getValue());
@@ -205,12 +188,6 @@ public class GameController {
         grandTotal.setScore(game.getPlayer().getScore());
     }
 
-    private void showFinalScorePrompt() {
-        if (JOptionPane.showOptionDialog(view, "Your final score is " + game.getPlayer().getScore() + ". Would you like to start a new game?", "Game End", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, null, null) == 0) {
-            newGame();
-        }
-    }
-
     private void updateTimer() {
         if (myTurn && timeLeft > 0) {
             timeLeft--;
@@ -226,7 +203,7 @@ public class GameController {
     public void setMyTurn(boolean t) {
         myTurn = t;
         rollDiceButton.setEnabled(t);
-        concedeButton.setEnabled(!t);
+        concedeButton.setEnabled(true);
         for (ScoreGroup sg : scoreGroups) {
             sg.setEnabled(t);
         }
@@ -241,11 +218,13 @@ public class GameController {
     }
 
     private void concedeTurn() {
-        if (myTurn) return;
-        JsonObject payload = new JsonObject();
-        payload.addProperty("concede", true);
-        net.send(new Message(MessageType.SELECT, payload));
-        setMyTurn(true);
+        int response = JOptionPane.showConfirmDialog(view, "Oyunu terk etmek istediğinize emin misiniz? Bu durumda rakibiniz kazanır.", "Onay", JOptionPane.YES_NO_OPTION);
+        if (response == JOptionPane.YES_OPTION) {
+            JsonObject payload = new JsonObject();
+            payload.addProperty("concede", true);
+            net.send(new Message(MessageType.END, payload));
+            view.cardLayout.show(view.mainPanel, "lobby");
+        }
     }
 
     public void applyRemote(Message m) {

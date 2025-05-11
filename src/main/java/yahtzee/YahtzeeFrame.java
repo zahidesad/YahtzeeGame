@@ -13,8 +13,8 @@ import java.awt.*;
 import java.io.IOException;
 
 public class YahtzeeFrame extends JFrame {
-    private CardLayout cardLayout;
-    private JPanel mainPanel;
+    public CardLayout cardLayout;
+    public JPanel mainPanel;
     private LobbyPanel lobbyPanel;
     private GamePanel gamePanel;
     private Game game;
@@ -75,12 +75,17 @@ public class YahtzeeFrame extends JFrame {
                 }
                 case END -> {
                     if (controller != null) {
-                        JsonObject result = new Gson().fromJson(msg.payload().toString(), JsonObject.class);
+                        JsonObject result = (JsonObject) msg.payload();
                         String message = "Oyun bitti!\n" +
-                                "Senin puanın: " + result.get("yourScore").getAsInt() + "\n" +
-                                "Rakibin puanı: " + result.get("opponentScore").getAsInt() + "\n" +
+                                "Senin puanın: " + result.get("yourScore").getAsDouble() + "\n" +
+                                "Rakibin puanı: " + result.get("opponentScore").getAsDouble() + "\n" +
                                 "Kazanan: " + result.get("winner").getAsString();
+                        if (result.has("reason")) {
+                            message += "\nSebep: " + result.get("reason").getAsString();
+                        }
                         JOptionPane.showMessageDialog(this, message);
+                        cardLayout.show(mainPanel, "lobby");
+                        lobbyPanel.reset();
                     }
                 }
                 default -> {
@@ -136,10 +141,6 @@ public class YahtzeeFrame extends JFrame {
 
     public JButton getRollDiceButton() {
         return gamePanel != null ? gamePanel.getRollDiceButton() : null;
-    }
-
-    public JButton getNewGameButton() {
-        return gamePanel != null ? gamePanel.getNewGameButton() : null;
     }
 
     public static void main(String[] args) {

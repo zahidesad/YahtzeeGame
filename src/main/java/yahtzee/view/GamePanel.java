@@ -12,7 +12,6 @@ public class GamePanel extends JPanel {
     private YahtzeeDice[] diceComponents;
     private ScoreBoard scoreBoard;
     private JButton rollDiceButton;
-    private JButton newGameButton;
     private JButton concedeButton;
     private GameController controller;
     private JLabel timerLabel;
@@ -27,11 +26,9 @@ public class GamePanel extends JPanel {
         }
         scoreBoard = new ScoreBoard();
         add(scoreBoard);
-        rollDiceButton = new JButton("Zar At");
+        rollDiceButton = new JButton("Roll Dice");
         rollDiceButton.setFont(new Font(rollDiceButton.getFont().getFontName(), Font.PLAIN, 20));
         add(rollDiceButton);
-        newGameButton = new JButton("Yeni Oyun");
-        add(newGameButton);
         concedeButton = new JButton("Concede");
         concedeButton.setFont(new Font(rollDiceButton.getFont().getFontName(), Font.PLAIN, 20));
         add(concedeButton);
@@ -42,7 +39,7 @@ public class GamePanel extends JPanel {
         controller = new GameController(game, frame, diceComponents, scoreBoard.getScoreGroups(),
                 scoreBoard.getUpperSectionBonus(), scoreBoard.getUpperSectionTotal(),
                 scoreBoard.getLowerSectionYahtzeeBonus(), scoreBoard.getGrandTotal(),
-                rollDiceButton, newGameButton, concedeButton, timerLabel, rollsLeftLabel,net);
+                rollDiceButton, concedeButton, timerLabel, rollsLeftLabel, net);
     }
 
     public GameController getController() {
@@ -85,12 +82,13 @@ public class GamePanel extends JPanel {
         return rollDiceButton;
     }
 
-    public JButton getNewGameButton() {
-        return newGameButton;
+    public JLabel getTimerLabel() {
+        return timerLabel;
     }
 
-    public JLabel getTimerLabel() { return timerLabel; }
-    public JLabel getRollsLeftLabel() { return rollsLeftLabel; }
+    public JLabel getRollsLeftLabel() {
+        return rollsLeftLabel;
+    }
 
     public StaticScoreGroup getOpponentUpperSectionTotal() {
         return scoreBoard.getOpponentUpperSectionTotal();

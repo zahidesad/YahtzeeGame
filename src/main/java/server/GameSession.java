@@ -58,6 +58,26 @@ final class GameSession implements Runnable {
                     current = other;
                     other = temp;
                 }
+                if (m.type() == MessageType.END) {
+                    JsonObject payload = gson.fromJson(m.payload().toString(), JsonObject.class);
+                    if (payload.has("concede") && payload.get("concede").getAsBoolean()) {
+                        JsonObject resultConceding = new JsonObject();
+                        resultConceding.addProperty("yourScore", current == p1 ? p1FinalScore != null ? p1FinalScore : 0 : p2FinalScore != null ? p2FinalScore : 0);
+                        resultConceding.addProperty("opponentScore", other == p1 ? p1FinalScore != null ? p1FinalScore : 0 : p2FinalScore != null ? p2FinalScore : 0);
+                        resultConceding.addProperty("winner", "Opponent");
+                        resultConceding.addProperty("reason", "You conceded");
+
+                        JsonObject resultWinning = new JsonObject();
+                        resultWinning.addProperty("yourScore", other == p1 ? p1FinalScore != null ? p1FinalScore : 0 : p2FinalScore != null ? p2FinalScore : 0);
+                        resultWinning.addProperty("opponentScore", current == p1 ? p1FinalScore != null ? p1FinalScore : 0 : p2FinalScore != null ? p2FinalScore : 0);
+                        resultWinning.addProperty("winner", "You");
+                        resultWinning.addProperty("reason", "Opponent conceded");
+
+                        current.send(new Message(MessageType.END, resultConceding));
+                        other.send(new Message(MessageType.END, resultWinning));
+                        break;
+                    }
+                }
                 if (p1FinalScore != null && p2FinalScore != null) {
                     JsonObject resultP1 = new JsonObject();
                     resultP1.addProperty("yourScore", p1FinalScore);

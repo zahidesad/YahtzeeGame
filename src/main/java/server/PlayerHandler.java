@@ -20,8 +20,10 @@ class PlayerHandler implements AutoCloseable {
         return gson.fromJson(in.readLine(), Message.class);
     }
     void send(Message m) throws IOException {
-        out.write(gson.toJson(m));
-        out.newLine(); out.flush();
+        String json = gson.toJson(m);
+        out.write(json + "\n");
+        out.flush();
+        System.out.println("Sent: " + json);
     }
     @Override public void close() throws IOException { socket.close(); }
 }

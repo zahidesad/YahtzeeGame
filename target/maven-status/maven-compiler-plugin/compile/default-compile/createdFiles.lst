@@ -7,6 +7,7 @@ yahtzee\model\Categories\Bonus.class
 yahtzee\YahtzeeFrame.class
 yahtzee\model\ScoreCard.class
 yahtzee\model\Dice.class
+yahtzee\YahtzeeFrame$1.class
 yahtzee\view\ScoreGroup.class
 yahtzee\model\Categories\FourOfAKind.class
 yahtzee\view\YahtzeeDice.class
