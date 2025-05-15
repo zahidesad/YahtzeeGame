@@ -9,48 +9,67 @@ import com.google.gson.Gson;
 import java.net.Socket;
 import java.io.*;
 
+/**
+ * Manages a two-player game session, routing messages and determining results.
+ */
 final class GameSession implements Runnable {
-    private final PlayerHandler p1, p2;
-    private final Gson gson = new Gson();
+    private final PlayerHandler p1, p2;  // Player connections
+    private final Gson gson = new Gson(); // JSON serializer/deserializer
     private boolean p1Finished = false;
     private boolean p2Finished = false;
     private Integer p1FinalScore = null;
     private Integer p2FinalScore = null;
 
+    /**
+     * Initialize session with two player sockets.
+     */
     GameSession(Socket a, Socket b) throws IOException {
         p1 = new PlayerHandler(a);
         p2 = new PlayerHandler(b);
     }
 
+    /**
+     * Main loop: notify match, alternate turns, forward actions, and send results.
+     */
     @Override
     public void run() {
         try (p1; p2) {
-            JsonElement matchedPayloadP1 = JsonParser.parseString("{\"yourTurn\":true}");
-            JsonElement matchedPayloadP2 = JsonParser.parseString("{\"yourTurn\":false}");
+            // Send initial turn notifications
+            JsonElement payloadP1 = JsonParser.parseString("{\"yourTurn\":true}");
+            JsonElement payloadP2 = JsonParser.parseString("{\"yourTurn\":false}");
+            p1.send(new Message(MessageType.MATCHED, payloadP1));
+            p2.send(new Message(MessageType.MATCHED, payloadP2));
 
-            p1.send(new Message(MessageType.MATCHED, matchedPayloadP1));
-            p2.send(new Message(MessageType.MATCHED, matchedPayloadP2));
             PlayerHandler current = p1;
             PlayerHandler other = p2;
+
+            // Game loop
             while (true) {
+                // Skip turn if player has finished
                 if ((current == p1 && p1Finished) || (current == p2 && p2Finished)) {
                     PlayerHandler temp = current;
                     current = other;
                     other = temp;
+                    // Break if both finished
                     if ((current == p1 && p1Finished) || (current == p2 && p2Finished)) {
                         break;
                     }
                     continue;
                 }
-                Message m = current.read();
+
+                Message m = current.read(); // Read player message
+
+                // Forward roll/select actions
                 if (m.type() == MessageType.SELECT || m.type() == MessageType.ROLL) {
                     other.send(m);
                 }
+
+                // Handle SELECT: check for game over and record score
                 if (m.type() == MessageType.SELECT) {
-                    JsonObject payload = gson.fromJson(m.payload().toString(), JsonObject.class);
-                    boolean gameOver = payload.get("gameOver").getAsBoolean();
+                    JsonObject data = gson.fromJson(m.payload().toString(), JsonObject.class);
+                    boolean gameOver = data.get("gameOver").getAsBoolean();
                     if (gameOver) {
-                        int finalScore = payload.get("grand").getAsInt();
+                        int finalScore = data.get("grand").getAsInt();
                         if (current == p1) {
                             p1FinalScore = finalScore;
                             p1Finished = true;
@@ -59,46 +78,65 @@ final class GameSession implements Runnable {
                             p2Finished = true;
                         }
                     }
+                    // Swap turns
                     PlayerHandler temp = current;
                     current = other;
                     other = temp;
                 }
+
+                // Handle END: concession logic
                 if (m.type() == MessageType.END) {
-                    JsonObject payload = gson.fromJson(m.payload().toString(), JsonObject.class);
-                    if (payload.has("concede") && payload.get("concede").getAsBoolean()) {
-                        JsonObject resultConceding = new JsonObject();
-                        resultConceding.addProperty("yourScore", current == p1 ? p1FinalScore != null ? p1FinalScore : 0 : p2FinalScore != null ? p2FinalScore : 0);
-                        resultConceding.addProperty("opponentScore", other == p1 ? p1FinalScore != null ? p1FinalScore : 0 : p2FinalScore != null ? p2FinalScore : 0);
-                        resultConceding.addProperty("winner", "Opponent");
-                        resultConceding.addProperty("reason", "You conceded");
+                    JsonObject data = gson.fromJson(m.payload().toString(), JsonObject.class);
+                    if (data.has("concede") && data.get("concede").getAsBoolean()) {
+                        // Prepare conceding result
+                        JsonObject concedeResult = new JsonObject();
+                        concedeResult.addProperty("yourScore", current == p1 ?
+                                (p1FinalScore != null ? p1FinalScore : 0) :
+                                (p2FinalScore != null ? p2FinalScore : 0));
+                        concedeResult.addProperty("opponentScore", other == p1 ?
+                                (p1FinalScore != null ? p1FinalScore : 0) :
+                                (p2FinalScore != null ? p2FinalScore : 0));
+                        concedeResult.addProperty("winner", "Opponent");
+                        concedeResult.addProperty("reason", "You conceded");
 
-                        JsonObject resultWinning = new JsonObject();
-                        resultWinning.addProperty("yourScore", other == p1 ? p1FinalScore != null ? p1FinalScore : 0 : p2FinalScore != null ? p2FinalScore : 0);
-                        resultWinning.addProperty("opponentScore", current == p1 ? p1FinalScore != null ? p1FinalScore : 0 : p2FinalScore != null ? p2FinalScore : 0);
-                        resultWinning.addProperty("winner", "You");
-                        resultWinning.addProperty("reason", "Opponent conceded");
+                        // Prepare winning result for opponent
+                        JsonObject winResult = new JsonObject();
+                        winResult.addProperty("yourScore", other == p1 ?
+                                (p1FinalScore != null ? p1FinalScore : 0) :
+                                (p2FinalScore != null ? p2FinalScore : 0));
+                        winResult.addProperty("opponentScore", current == p1 ?
+                                (p1FinalScore != null ? p1FinalScore : 0) :
+                                (p2FinalScore != null ? p2FinalScore : 0));
+                        winResult.addProperty("winner", "You");
+                        winResult.addProperty("reason", "Opponent conceded");
 
-                        current.send(new Message(MessageType.END, resultConceding));
-                        other.send(new Message(MessageType.END, resultWinning));
+                        // Send end messages
+                        current.send(new Message(MessageType.END, concedeResult));
+                        other.send(new Message(MessageType.END, winResult));
                         break;
                     }
                 }
-                if (p1FinalScore != null && p2FinalScore != null) {
-                    JsonObject resultP1 = new JsonObject();
-                    resultP1.addProperty("yourScore", p1FinalScore);
-                    resultP1.addProperty("opponentScore", p2FinalScore);
-                    resultP1.addProperty("winner", p1FinalScore > p2FinalScore ? "You" : (p1FinalScore < p2FinalScore ? "Opponent" : "Tie"));
 
-                    JsonObject resultP2 = new JsonObject();
-                    resultP2.addProperty("yourScore", p2FinalScore);
-                    resultP2.addProperty("opponentScore", p1FinalScore);
-                    resultP2.addProperty("winner", p2FinalScore > p1FinalScore ? "You" : (p2FinalScore < p1FinalScore ? "Opponent" : "Tie"));
-                    p1.send(new Message(MessageType.END, resultP1));
-                    p2.send(new Message(MessageType.END, resultP2));
+                // If both players have final scores, send results
+                if (p1FinalScore != null && p2FinalScore != null) {
+                    JsonObject res1 = new JsonObject();
+                    res1.addProperty("yourScore", p1FinalScore);
+                    res1.addProperty("opponentScore", p2FinalScore);
+                    res1.addProperty("winner", p1FinalScore > p2FinalScore ? "You" :
+                            (p1FinalScore < p2FinalScore ? "Opponent" : "Tie"));
+
+                    JsonObject res2 = new JsonObject();
+                    res2.addProperty("yourScore", p2FinalScore);
+                    res2.addProperty("opponentScore", p1FinalScore);
+                    res2.addProperty("winner", p2FinalScore > p1FinalScore ? "You" :
+                            (p2FinalScore < p1FinalScore ? "Opponent" : "Tie"));
+
+                    p1.send(new Message(MessageType.END, res1));
+                    p2.send(new Message(MessageType.END, res2));
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(); // Log errors
         }
     }
 }

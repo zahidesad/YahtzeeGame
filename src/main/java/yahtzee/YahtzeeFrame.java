@@ -1,7 +1,6 @@
 package yahtzee;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import yahtzee.controller.GameController;
 import yahtzee.model.Game;
@@ -13,18 +12,23 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
 
+/**
+ * Main application window: manages lobby and game panels, handles network events.
+ */
 public class YahtzeeFrame extends JFrame {
-    public CardLayout cardLayout;
-    public JPanel mainPanel;
-    private LobbyPanel lobbyPanel;
-    private GamePanel gamePanel;
-    private Game game;
-    private NetworkClient net;
-    private GameController controller;
+    public CardLayout cardLayout;   // Layout to switch between views
+    public JPanel mainPanel;        // Container for lobby and game panels
+    private LobbyPanel lobbyPanel;  // Initial connection UI
+    private GamePanel gamePanel;    // Active game UI
+    private Game game;              // Game model
+    private NetworkClient net;      // Network client for server communication
+    private GameController controller; // Controller for game interactions
 
-
+    /**
+     * Initialize frame, show lobby panel, and set up event handlers.
+     */
     public YahtzeeFrame() {
-        super("Yahtzee Oyunu");
+        super("Yahtzee Game");
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
         lobbyPanel = new LobbyPanel();
@@ -32,34 +36,40 @@ public class YahtzeeFrame extends JFrame {
         add(mainPanel);
         cardLayout.show(mainPanel, "lobby");
 
+        // Handle "Find Game" button in lobby
         lobbyPanel.addFindGameListener(e -> {
             String ip = lobbyPanel.getIp();
             String nick = lobbyPanel.getNick();
             if (ip.isEmpty() || nick.isEmpty()) {
-                lobbyPanel.setStatus("Lütfen IP ve takma ad girin.");
+                lobbyPanel.setStatus("Please enter IP and nickname.");
                 return;
             }
             try {
+                // Connect and send HELLO
                 net = new NetworkClient(ip, 12345, nick, this::handleNetwork);
-                lobbyPanel.setStatus("Başka bir oyuncu bekleniyor...");
+                lobbyPanel.setStatus("Waiting for another player...");
             } catch (IOException ex) {
-                lobbyPanel.setStatus("Bağlantı hatası: " + ex.getMessage());
+                lobbyPanel.setStatus("Connection error: " + ex.getMessage());
             }
         });
 
         setSize(950, 850);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setResizable(true);
         setLocationRelativeTo(null);
         setVisible(true);
     }
 
+    /**
+     * Dispatch network messages on the Swing event thread.
+     */
     private void handleNetwork(Message msg) {
         SwingUtilities.invokeLater(() -> {
             switch (msg.type()) {
                 case MATCHED -> {
-                    boolean iStart = new Gson().fromJson(msg.payload().toString(),
-                            JsonObject.class).get("yourTurn").getAsBoolean();
+                    // Start game when matched
+                    boolean iStart = new Gson()
+                            .fromJson(msg.payload().toString(), JsonObject.class)
+                            .get("yourTurn").getAsBoolean();
                     game = new Game(lobbyPanel.getNick());
                     gamePanel = new GamePanel(game, net, this);
                     mainPanel.add(gamePanel, "game");
@@ -67,34 +77,40 @@ public class YahtzeeFrame extends JFrame {
                     controller = gamePanel.getController();
                     controller.setMyTurn(iStart);
                     JOptionPane.showMessageDialog(this,
-                            iStart ? "Eşleştin, sen başlıyorsun!" : "Eşleştin, rakibi bekle...");
+                            iStart ? "Matched! You go first." : "Matched! Waiting for opponent...");
                 }
                 case ROLL, SELECT, UPDATE -> {
+                    // Forward remote actions to controller
                     if (controller != null) {
                         controller.applyRemote(msg);
                     }
                 }
                 case END -> {
+                    // Display results and return to lobby
                     if (controller != null) {
-                        JsonObject result = msg.payload().getAsJsonObject();
-                        String message = "Oyun bitti!\n" +
-                                "Senin puanın: " + result.get("yourScore").getAsDouble() + "\n" +
-                                "Rakibin puanı: " + result.get("opponentScore").getAsDouble() + "\n" +
-                                "Kazanan: " + result.get("winner").getAsString();
-                        if (result.has("reason")) {
-                            message += "\nSebep: " + result.get("reason").getAsString();
+                        JsonObject res = msg.payload().getAsJsonObject();
+                        String resultMsg = String.format(
+                                "Game over!\nYour score: %.0f\nOpponent score: %.0f\nWinner: %s",
+                                res.get("yourScore").getAsDouble(),
+                                res.get("opponentScore").getAsDouble(),
+                                res.get("winner").getAsString()
+                        );
+                        if (res.has("reason")) {
+                            resultMsg += "\nReason: " + res.get("reason").getAsString();
                         }
-                        JOptionPane.showMessageDialog(this, message);
+                        JOptionPane.showMessageDialog(this, resultMsg);
                         cardLayout.show(mainPanel, "lobby");
                         lobbyPanel.reset();
                     }
                 }
                 default -> {
+                    // Ignore other message types
                 }
             }
         });
     }
 
+    /* ---------- Getter proxies for testing or UI updates ---------- */
     public YahtzeeDice[] getDiceComponents() {
         return gamePanel != null ? gamePanel.getDiceComponents() : null;
     }
@@ -143,6 +159,9 @@ public class YahtzeeFrame extends JFrame {
         return gamePanel != null ? gamePanel.getRollDiceButton() : null;
     }
 
+    /**
+     * Launch the application.
+     */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(YahtzeeFrame::new);
     }

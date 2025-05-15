@@ -31,6 +31,7 @@ yahtzee\controller\GameController.class
 yahtzee\model\Categories\Chance.class
 yahtzee\view\ScoreBoard.class
 yahtzee\model\Categories\UpperCategory.class
+yahtzee\view\LobbyPanel$Card.class
 yahtzee\controller\GameController$1.class
 yahtzee\model\Game.class
 yahtzee\network\NetworkClient.class

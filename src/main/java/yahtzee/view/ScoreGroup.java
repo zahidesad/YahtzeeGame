@@ -6,10 +6,13 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
+/**
+ * UI component for a single scoring category: displays name and score with interactive styling.
+ */
 public class ScoreGroup extends JPanel implements Resettable {
     private static final long serialVersionUID = 1L;
 
-    /* ---- visual constants ---- */
+    // Visual style constants
     private static final Color BG_DEFAULT = new Color(0xFAFAFA);
     private static final Color BG_HOVER = new Color(0xEEF6FF);
     private static final Color BG_SELECTED = new Color(0x007BFF);
@@ -17,30 +20,32 @@ public class ScoreGroup extends JPanel implements Resettable {
     private static final Color BORDER_COLOR = new Color(0xD0D0D0);
     private static final int ARC = 10;
 
-    /* ---- state (same as before) ---- */
-    protected yahtzee.model.Categories.Category category;
-    protected boolean canBeSelected;
-    protected boolean chosen;
-    protected boolean usingOverrideScore;
-    protected String categoryName;
-    protected JLabel text;
-    protected JLabel score;
+    // Category state
+    protected yahtzee.model.Categories.Category category; // Scoring logic
+    protected boolean canBeSelected;                      // Eligibility for selection
+    protected boolean chosen;                             // Selection state
+    protected boolean usingOverrideScore;                 // Override rule flag
+    protected String categoryName;                        // Display name
+    protected JLabel text;                                // Label for category name or score hint
+    protected JLabel score;                               // Label for chosen score
 
+    /**
+     * Create ScoreGroup for given category with default styling.
+     */
     public ScoreGroup(yahtzee.model.Categories.Category category) {
         super();
         setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
-        setOpaque(false); // we'll paint our own background
+        setOpaque(false);
         setBorder(new EmptyBorder(6, 10, 6, 10));
         setMaximumSize(new Dimension(340, 34));
 
-        /* ---- init state ---- */
-        canBeSelected = false;
-        chosen = false;
-        usingOverrideScore = false;
         this.category = category;
         this.categoryName = category.toString();
+        this.canBeSelected = false;
+        this.chosen = false;
+        this.usingOverrideScore = false;
 
-        /* ---- labels ---- */
+        // Initialize text and score labels
         text = new JLabel(categoryName);
         text.setFont(text.getFont().deriveFont(Font.PLAIN, 13f));
         text.setPreferredSize(new Dimension(170, 24));
@@ -54,7 +59,7 @@ public class ScoreGroup extends JPanel implements Resettable {
         add(Box.createHorizontalGlue());
         add(score);
 
-        /* ---- hover highlight (visual only) ---- */
+        // Hover effect triggers repaint
         MouseAdapter hover = new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
@@ -69,8 +74,44 @@ public class ScoreGroup extends JPanel implements Resettable {
         addMouseListener(hover);
     }
 
-    /* -------------------------------------------------- */
+    /**
+     * Custom painting for background, separator, and border.
+     */
+    @Override
+    protected void paintComponent(Graphics g) {
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
+        // Determine background color based on state
+        Color bg = chosen ? BG_SELECTED
+                : (getMousePosition() != null && isEnabled()) ? BG_HOVER
+                : BG_DEFAULT;
+        g2.setColor(bg);
+        g2.fillRoundRect(0, 0, getWidth(), getHeight(), ARC, ARC);
+
+        // Separator line before score label
+        int sepX = getWidth() - 70;
+        g2.setColor(new Color(0xCCCCCC));
+        g2.drawLine(sepX, 4, sepX, getHeight() - 4);
+
+        // Draw border
+        g2.setColor(BORDER_COLOR);
+        g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, ARC, ARC);
+        g2.dispose();
+
+        super.paintComponent(g);
+
+        // Update label colors when selected
+        if (chosen) {
+            text.setForeground(FG_SELECTED);
+            score.setForeground(FG_SELECTED);
+        } else {
+            text.setForeground(Color.DARK_GRAY);
+            score.setForeground(Color.BLACK);
+        }
+    }
+
+    /* ---------- Helper methods for external control ---------- */
     public boolean getCanBeSelected() {
         return canBeSelected;
     }
@@ -83,10 +124,6 @@ public class ScoreGroup extends JPanel implements Resettable {
         return chosen;
     }
 
-    public boolean getIsUpper() {
-        return category.getCategoryIndex() <= 6;
-    }
-
     public boolean getUsingOverrideScore() {
         return usingOverrideScore;
     }
@@ -95,46 +132,9 @@ public class ScoreGroup extends JPanel implements Resettable {
         return category instanceof yahtzee.model.Categories.Yahtzee;
     }
 
-    /* -------------------------------------------------- */
-
-    @Override
-    protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-        /* --- background --- */
-        Color bg;
-        if (chosen) bg = BG_SELECTED;
-        else if (getMousePosition() != null && isEnabled()) bg = BG_HOVER;
-        else bg = BG_DEFAULT;
-
-        g2.setColor(bg);
-        g2.fillRoundRect(0, 0, getWidth(), getHeight(), ARC, ARC);
-
-        /* --- vertical separator line before score --- */
-        int sepX = getWidth() - 70;
-        g2.setColor(new Color(0xCCCCCC));
-        g2.drawLine(sepX, 4, sepX, getHeight() - 4);
-
-        /* --- border --- */
-        g2.setColor(BORDER_COLOR);
-        g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, ARC, ARC);
-
-        g2.dispose();
-        super.paintComponent(g); // paint children (labels)
-
-        /* swap label colors if selected */
-        if (chosen) {
-            text.setForeground(FG_SELECTED);
-            score.setForeground(FG_SELECTED);
-        } else {
-            text.setForeground(Color.DARK_GRAY);
-            score.setForeground(Color.BLACK);
-        }
-    }
-
-    /* ------------------ state helpers ------------------ */
-
+    /**
+     * Reset visual and state flags to default.
+     */
     @Override
     public void reset() {
         chosen = false;
@@ -155,6 +155,7 @@ public class ScoreGroup extends JPanel implements Resettable {
 
     public void setText(String s) {
         text.setText(s);
+        repaint();
     }
 
     public void setChosen(boolean b) {
@@ -167,12 +168,14 @@ public class ScoreGroup extends JPanel implements Resettable {
         repaint();
     }
 
-    public void setCanBeSelected(boolean b, boolean ignored) {
+    public void setCanBeSelected(boolean b, boolean override) {
         canBeSelected = b;
+        usingOverrideScore = override;
     }
 
     public void setTextToCategory() {
         text.setText(categoryName);
         score.setText("");
+        repaint();
     }
 }

@@ -6,47 +6,54 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.ActionListener;
-import java.util.Objects;
+import java.net.URL;
 
 /**
- * Lobby screen with polished look: centered card, rounded inputs, dynamic logo scaling and soft gradient.
- * Behaviour/API unchanged.
+ * Lobby screen: handles user nickname input, server connection, and waiting animation.
  */
 public class LobbyPanel extends JPanel {
 
-    private static final String SERVER_IP = "56.228.19.115";
+    private static final String SERVER_IP = "56.228.19.115"; // Game server address
 
-    private final JTextField nickField;
-    private final JButton findGameButton;
-    private final JLabel statusLabel;
-    private final Timer animationTimer;
+    private final JTextField nickField;     // Input for player nickname
+    private final JButton findGameButton;   // Button to initiate matchmaking
+    private final JLabel statusLabel;       // Displays connection/status messages
+    private final Timer animationTimer;     // Animates waiting dots
 
+    /**
+     * Build lobby UI: centered card with logo, nickname field, and find-game button.
+     */
     public LobbyPanel() {
-        /* ---------- background ---------- */
         setOpaque(false);
-        setLayout(new GridBagLayout()); // easy centering
+        setLayout(new GridBagLayout()); // Center the card panel
 
-        /* ---------- card ------------ */
+        // Card container with rounded border
         Card card = new Card();
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setBorder(new EmptyBorder(30, 50, 40, 50));
 
-        /* ---------- Logo ---------- */
-        ImageIcon raw = new ImageIcon("C:/Users/zahid/IdeaProjects/YahtzeeGame/src/main/java/yahtzee/images/yahtzee_logo.png");
-        Image scaled = raw.getImage().getScaledInstance(260, -1, Image.SCALE_SMOOTH); // keep aspect ratio
+        // Logo at top, scaled smoothly
+        URL logoUrl = getClass().getResource("/yahtzee/images/yahtzee_logo.png");
+        if (logoUrl == null) {
+            throw new RuntimeException("Logo can't find: yahtzee_logo.png");
+        }
+        ImageIcon raw = new ImageIcon(logoUrl);
+        Image scaled = raw.getImage()
+                .getScaledInstance(260, -1, Image.SCALE_SMOOTH);
         JLabel logo = new JLabel(new ImageIcon(scaled));
+
         logo.setAlignmentX(Component.CENTER_ALIGNMENT);
         card.add(logo);
         card.add(Box.createVerticalStrut(30));
 
-        /* ---------- Nick label ---------- */
-        JLabel nickLabel = new JLabel("Takma Ad:");
+        // Nickname label
+        JLabel nickLabel = new JLabel("Nickname:");
         nickLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         nickLabel.setFont(nickLabel.getFont().deriveFont(Font.BOLD, 15f));
         card.add(nickLabel);
         card.add(Box.createVerticalStrut(6));
 
-        /* ---------- Nick field ---------- */
+        // Nickname input field
         nickField = new JTextField("Player", 18);
         nickField.setFont(nickField.getFont().deriveFont(15f));
         nickField.setMaximumSize(new Dimension(280, 40));
@@ -57,34 +64,35 @@ public class LobbyPanel extends JPanel {
         card.add(nickField);
         card.add(Box.createVerticalStrut(18));
 
-        /* ---------- Button ---------- */
-        findGameButton = new JButton("Oyun Bul");
+        // Find game button
+        findGameButton = new JButton("Find Game");
         findGameButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         findGameButton.setFont(findGameButton.getFont().deriveFont(Font.BOLD, 15f));
         stylizeButton(findGameButton);
         card.add(findGameButton);
         card.add(Box.createVerticalStrut(25));
 
-        /* ---------- Status ---------- */
+        // Status label for messages and waiting animation
         statusLabel = new JLabel(" ");
         statusLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         statusLabel.setFont(statusLabel.getFont().deriveFont(Font.PLAIN, 14f));
         card.add(statusLabel);
 
-        /* ---------- add card to center ---------- */
-        add(card);
+        add(card); // Add card to center of panel
 
-        /* ---------- Waiting‑dots animation ---------- */
+        // Timer for appending dots to waiting status
         animationTimer = new Timer(500, e -> {
-            String current = statusLabel.getText();
-            if (current.startsWith("Başka bir oyuncu bekleniyor")) {
-                int dots = (current.length() - "Başka bir oyuncu bekleniyor".length()) % 4;
-                statusLabel.setText("Başka bir oyuncu bekleniyor" + ".".repeat(dots + 1));
+            String text = statusLabel.getText();
+            if (text.startsWith("Waiting for opponent")) {
+                int dots = (text.length() - "Waiting for opponent".length()) % 4;
+                statusLabel.setText("Waiting for opponent" + ".".repeat(dots + 1));
             }
         });
     }
 
-    /* -------------------------------------------------- */
+    /**
+     * Apply common styling to buttons.
+     */
     private void stylizeButton(JButton b) {
         b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         b.setFocusPainted(false);
@@ -93,7 +101,9 @@ public class LobbyPanel extends JPanel {
         b.setBorder(new EmptyBorder(10, 30, 10, 30));
     }
 
-    /* -------------------------------------------------- */
+    /**
+     * Paint gradient background behind lobby card.
+     */
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -106,34 +116,52 @@ public class LobbyPanel extends JPanel {
         g2.dispose();
     }
 
-    /* --------------------  Public API  -------------------- */
+    // --- Public API ---
+
+    /**
+     * Get server IP address for connection.
+     */
     public String getIp() {
         return SERVER_IP;
     }
 
+    /**
+     * Retrieve trimmed nickname from input field.
+     */
     public String getNick() {
         return nickField.getText().trim();
     }
 
+    /**
+     * Update status text and start/stop waiting animation.
+     */
     public void setStatus(String status) {
         statusLabel.setText(status);
-        if (status.startsWith("Başka bir oyuncu bekleniyor")) animationTimer.start();
+        if (status.startsWith("Waiting for opponent")) animationTimer.start();
         else animationTimer.stop();
     }
 
+    /**
+     * Reset input state for a new matchmaking attempt.
+     */
     public void reset() {
         nickField.setEnabled(true);
         findGameButton.setEnabled(true);
         setStatus(" ");
     }
 
+    /**
+     * Register listener for the find-game button.
+     */
     public void addFindGameListener(ActionListener l) {
         findGameButton.addActionListener(l);
     }
 
-    /* ========= inner rounded card ========= */
+    /**
+     * Inner panel with rounded white card styling.
+     */
     private static class Card extends JPanel {
-        private static final int ARC = 18;
+        private static final int ARC = 18; // Corner arc radius
 
         Card() {
             setOpaque(false);
