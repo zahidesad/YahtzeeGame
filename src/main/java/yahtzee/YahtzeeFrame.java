@@ -47,7 +47,7 @@ public class YahtzeeFrame extends JFrame {
             }
         });
 
-        setSize(815, 745);
+        setSize(950, 850);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setResizable(true);
         setLocationRelativeTo(null);
