@@ -23,6 +23,7 @@ public class YahtzeeFrame extends JFrame {
     private Game game;              // Game model
     private NetworkClient net;      // Network client for server communication
     private GameController controller; // Controller for game interactions
+    private boolean inGame = false;
 
     /**
      * Initialize frame, show lobby panel, and set up event handlers.
@@ -46,7 +47,7 @@ public class YahtzeeFrame extends JFrame {
             }
             try {
                 // Connect and send HELLO
-                net = new NetworkClient(ip, 12345, nick, this::handleNetwork);
+                setNet(new NetworkClient(ip, 12345, nick, this::handleNetwork));
                 lobbyPanel.setStatus("Waiting for another player...");
             } catch (IOException ex) {
                 lobbyPanel.setStatus("Connection error: " + ex.getMessage());
@@ -54,8 +55,45 @@ public class YahtzeeFrame extends JFrame {
         });
 
         setSize(950, 850);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setLocationRelativeTo(null);
+
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                // If there is an active game, inform the opponent first
+                if (inGame) {
+                    int resp = JOptionPane.showConfirmDialog(
+                            YahtzeeFrame.this,
+                            "Quitting ends the game and the opponent wins.\nDo you want to continue?",
+                            "Confirm Exit", JOptionPane.YES_NO_OPTION);
+
+                    if (resp != JOptionPane.YES_OPTION) {
+                        return; // User gave up
+                    }
+
+                    try {
+                        // Send a concede message
+                        com.google.gson.JsonObject payload = new com.google.gson.JsonObject();
+                        payload.addProperty("concede", true);
+                        if (getNet() != null) {
+                            getNet().send(new yahtzee.network.Message(
+                                    yahtzee.network.MessageType.END, payload));
+                            getNet().close(); // cleanly close the connection
+                        }
+                    } catch (Exception ignore) { }
+
+                    // Close window – game over
+                    dispose();
+                    System.exit(0);
+                } else {
+                    // Close directly when in the lobby
+                    dispose();
+                    System.exit(0);
+                }
+            }
+        });
+
         setVisible(true);
     }
 
@@ -71,23 +109,24 @@ public class YahtzeeFrame extends JFrame {
                             .fromJson(msg.payload().toString(), JsonObject.class)
                             .get("yourTurn").getAsBoolean();
                     game = new Game(lobbyPanel.getNick());
-                    gamePanel = new GamePanel(game, net, this);
+                    gamePanel = new GamePanel(game, getNet(), this);
                     mainPanel.add(gamePanel, "game");
                     cardLayout.show(mainPanel, "game");
-                    controller = gamePanel.getController();
-                    controller.setMyTurn(iStart);
+                    setController(gamePanel.getController());
+                    getController().setMyTurn(iStart);
                     JOptionPane.showMessageDialog(this,
                             iStart ? "Matched! You go first." : "Matched! Waiting for opponent...");
+                    setInGame(true);
                 }
                 case ROLL, SELECT, UPDATE -> {
                     // Forward remote actions to controller
-                    if (controller != null) {
-                        controller.applyRemote(msg);
+                    if (getController() != null) {
+                        getController().applyRemote(msg);
                     }
                 }
                 case END -> {
                     // Display results and return to lobby
-                    if (controller != null) {
+                    if (getController() != null) {
                         JsonObject res = msg.payload().getAsJsonObject();
                         String resultMsg = String.format(
                                 "Game over!\nYour score: %.0f\nOpponent score: %.0f\nWinner: %s",
@@ -101,6 +140,10 @@ public class YahtzeeFrame extends JFrame {
                         JOptionPane.showMessageDialog(this, resultMsg);
                         cardLayout.show(mainPanel, "lobby");
                         lobbyPanel.reset();
+                        setInGame(false);
+                        setController(null);
+                        try { if (getNet() != null) getNet().close(); } catch (Exception ignore) {}
+
                     }
                 }
                 default -> {
@@ -157,6 +200,26 @@ public class YahtzeeFrame extends JFrame {
 
     public JButton getRollDiceButton() {
         return gamePanel != null ? gamePanel.getRollDiceButton() : null;
+    }
+
+    public void setInGame(boolean inGame) {
+        this.inGame = inGame;
+    }
+
+    public GameController getController() {
+        return controller;
+    }
+
+    public void setController(GameController controller) {
+        this.controller = controller;
+    }
+
+    public void setNet(NetworkClient net) {
+        this.net = net;
+    }
+
+    public NetworkClient getNet() {
+        return net;
     }
 
     /**

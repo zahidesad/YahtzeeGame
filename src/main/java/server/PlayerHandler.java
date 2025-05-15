@@ -48,4 +48,8 @@ class PlayerHandler implements AutoCloseable {
     public void close() throws IOException {
         socket.close();
     }
+
+    boolean hasIncoming() throws IOException {
+        return in.ready();
+    }
 }

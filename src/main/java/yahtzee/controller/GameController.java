@@ -137,6 +137,12 @@ public class GameController {
 
         JsonObject payload = new JsonObject();
         payload.addProperty("count", game.getRollCount());
+
+        JsonArray diceValues = new JsonArray();
+        for (Dice d : game.getDice()) {
+            diceValues.add(d.getValue());
+        }
+        payload.add("dice", diceValues);
         JsonArray values = new JsonArray();
         for (Dice d : game.getDice()) values.add(d.getValue());
         net.send(new Message(MessageType.ROLL, payload));
@@ -244,9 +250,13 @@ public class GameController {
                 view, "Are you sure you want to concede? Opponent will win.",
                 "Confirm", JOptionPane.YES_NO_OPTION);
         if (resp == JOptionPane.YES_OPTION) {
+            concedeButton.setEnabled(false);
             JsonObject payload = new JsonObject();
             payload.addProperty("concede", true);
             net.send(new Message(MessageType.END, payload));
+            view.setInGame(false);
+            view.setController(null);
+            try { if (view.getNet() != null) view.getNet().close(); } catch (Exception ignore) {}
             view.cardLayout.show(view.mainPanel, "lobby");
         }
     }
@@ -260,6 +270,7 @@ public class GameController {
             case ROLL -> {
                 JsonObject o = g.fromJson(m.payload().toString(), JsonObject.class);
                 JsonArray values = o.getAsJsonArray("dice");
+                if (values == null || values.size() != 5) return;
                 for (int i = 0; i < 5; i++) {
                     Dice d = game.getDice()[i];
                     d.setValue(values.get(i).getAsInt());

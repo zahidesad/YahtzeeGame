@@ -13,7 +13,7 @@ import java.net.URL;
  */
 public class LobbyPanel extends JPanel {
 
-    private static final String SERVER_IP = "56.228.19.115"; // Game server address
+    private static final String SERVER_IP = "localhost"; // Game server address
 
     private final JTextField nickField;     // Input for player nickname
     private final JButton findGameButton;   // Button to initiate matchmaking

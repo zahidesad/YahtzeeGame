@@ -16,6 +16,8 @@ public class NetworkClient implements AutoCloseable, Runnable {
     private final BufferedWriter out;     // Writer for outgoing messages
     private final Gson gson = new Gson(); // JSON serializer/deserializer
     private final Consumer<Message> onMsg; // Handler for received messages
+    private volatile boolean closed = false;
+    private final Thread readerThread;
 
     /**
      * Connect to server, send HELLO, and start listening thread.
@@ -32,7 +34,8 @@ public class NetworkClient implements AutoCloseable, Runnable {
         send(new Message(MessageType.HELLO, helloPayload));
 
         // Launch background thread to read messages
-        new Thread(this, "NetReader").start();
+        readerThread = new Thread(this, "NetReader");
+        readerThread.start();
     }
 
     /**
@@ -55,12 +58,13 @@ public class NetworkClient implements AutoCloseable, Runnable {
     public void run() {
         try {
             String line;
-            while ((line = in.readLine()) != null) {
+            while (!closed && (line = in.readLine()) != null) {
                 Message msg = gson.fromJson(line, Message.class);
                 onMsg.accept(msg);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            if (!closed)
+                e.printStackTrace();
         }
     }
 
@@ -69,6 +73,8 @@ public class NetworkClient implements AutoCloseable, Runnable {
      */
     @Override
     public void close() throws IOException {
+        closed = true;
+        readerThread.interrupt();
         in.close();
         out.close();
     }
