@@ -6,72 +6,73 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.util.Objects;
 
+/**
+ * Lobby screen with polished look: centered card, rounded inputs, dynamic logo scaling and soft gradient.
+ * Behaviour/API unchanged.
+ */
 public class LobbyPanel extends JPanel {
+
     private static final String SERVER_IP = "56.228.19.115";
 
-    private JTextField nickField;
-    private JButton findGameButton;
-    private JLabel statusLabel;
-    private Timer animationTimer;
+    private final JTextField nickField;
+    private final JButton findGameButton;
+    private final JLabel statusLabel;
+    private final Timer animationTimer;
 
     public LobbyPanel() {
-        // Gradient background handled in paintComponent
+        /* ---------- background ---------- */
         setOpaque(false);
-        setLayout(new BorderLayout());
+        setLayout(new GridBagLayout()); // easy centering
 
-        /* ---------- Central content container ---------- */
-        JPanel content = new JPanel();
-        content.setOpaque(false);
-        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBorder(new EmptyBorder(40, 60, 40, 60));
+        /* ---------- card ------------ */
+        Card card = new Card();
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBorder(new EmptyBorder(30, 50, 40, 50));
 
-        ImageIcon originalIcon  = new ImageIcon("C:/Users/zahid/IdeaProjects/YahtzeeGame/src/main/java/yahtzee/images/yahtzee_logo.png");
-        Image scaledImage = originalIcon.getImage().getScaledInstance(300, 300, Image.SCALE_SMOOTH);
-        JLabel logo = new JLabel();
-        logo.setIcon(new ImageIcon(scaledImage));
+        /* ---------- Logo ---------- */
+        ImageIcon raw = new ImageIcon("C:/Users/zahid/IdeaProjects/YahtzeeGame/src/main/java/yahtzee/images/yahtzee_logo.png");
+        Image scaled = raw.getImage().getScaledInstance(260, -1, Image.SCALE_SMOOTH); // keep aspect ratio
+        JLabel logo = new JLabel(new ImageIcon(scaled));
         logo.setAlignmentX(Component.CENTER_ALIGNMENT);
-        content.add(logo);
-        content.add(Box.createVerticalStrut(25));
+        card.add(logo);
+        card.add(Box.createVerticalStrut(30));
 
-        /* ---------- Nickname label ---------- */
+        /* ---------- Nick label ---------- */
         JLabel nickLabel = new JLabel("Takma Ad:");
         nickLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        nickLabel.setFont(nickLabel.getFont().deriveFont(Font.BOLD, 16f));
-        content.add(nickLabel);
-        content.add(Box.createVerticalStrut(8));
+        nickLabel.setFont(nickLabel.getFont().deriveFont(Font.BOLD, 15f));
+        card.add(nickLabel);
+        card.add(Box.createVerticalStrut(6));
 
-        /* ---------- Nickname text field ---------- */
-        nickField = new JTextField("Player", 15);
+        /* ---------- Nick field ---------- */
+        nickField = new JTextField("Player", 18);
         nickField.setFont(nickField.getFont().deriveFont(15f));
-        nickField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        nickField.setMaximumSize(new Dimension(280, 40));
         nickField.setHorizontalAlignment(JTextField.CENTER);
         nickField.setBorder(new CompoundBorder(
-                new LineBorder(new Color(150, 150, 150), 1, true),
-                new EmptyBorder(8, 12, 8, 12)));
-        content.add(nickField);
-        content.add(Box.createVerticalStrut(20));
+                new LineBorder(new Color(0xB0B0B0), 1, true),
+                new EmptyBorder(6, 10, 6, 10)));
+        card.add(nickField);
+        card.add(Box.createVerticalStrut(18));
 
-        /* ---------- Find‑game button ---------- */
+        /* ---------- Button ---------- */
         findGameButton = new JButton("Oyun Bul");
         findGameButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        findGameButton.setFont(findGameButton.getFont().deriveFont(Font.BOLD, 16f));
-        findGameButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        findGameButton.setFocusPainted(false);
-        findGameButton.setBorder(new EmptyBorder(12, 30, 12, 30));
-        findGameButton.setBackground(new Color(0x007BFF));     // Bootstrap‑style primary blue
-        findGameButton.setForeground(Color.WHITE);
-        content.add(findGameButton);
-        content.add(Box.createVerticalStrut(25));
+        findGameButton.setFont(findGameButton.getFont().deriveFont(Font.BOLD, 15f));
+        stylizeButton(findGameButton);
+        card.add(findGameButton);
+        card.add(Box.createVerticalStrut(25));
 
-        /* ---------- Status label ---------- */
-        statusLabel = new JLabel(" ", SwingConstants.CENTER);
+        /* ---------- Status ---------- */
+        statusLabel = new JLabel(" ");
         statusLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        statusLabel.setFont(statusLabel.getFont().deriveFont(14f));
-        content.add(statusLabel);
+        statusLabel.setFont(statusLabel.getFont().deriveFont(Font.PLAIN, 14f));
+        card.add(statusLabel);
 
-        /* ---------- Add content to panel ---------- */
-        add(content, BorderLayout.CENTER);
+        /* ---------- add card to center ---------- */
+        add(card);
 
         /* ---------- Waiting‑dots animation ---------- */
         animationTimer = new Timer(500, e -> {
@@ -83,22 +84,29 @@ public class LobbyPanel extends JPanel {
         });
     }
 
-    /* -----------------------  PAINT  ----------------------- */
+    /* -------------------------------------------------- */
+    private void stylizeButton(JButton b) {
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        b.setFocusPainted(false);
+        b.setBackground(new Color(0x007BFF));
+        b.setForeground(Color.WHITE);
+        b.setBorder(new EmptyBorder(10, 30, 10, 30));
+    }
 
+    /* -------------------------------------------------- */
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        // Soft vertical gradient for a modern feel
         Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
         int h = getHeight();
-        GradientPaint gp = new GradientPaint(0, 0, new Color(250, 250, 250), 0, h, new Color(224, 224, 224));
+        GradientPaint gp = new GradientPaint(0, 0, new Color(242, 242, 242), 0, h, new Color(219, 219, 219));
         g2.setPaint(gp);
         g2.fillRect(0, 0, getWidth(), h);
         g2.dispose();
     }
 
-    /* --------------------  Original API  -------------------- */
-
+    /* --------------------  Public API  -------------------- */
     public String getIp() {
         return SERVER_IP;
     }
@@ -109,11 +117,8 @@ public class LobbyPanel extends JPanel {
 
     public void setStatus(String status) {
         statusLabel.setText(status);
-        if (status.startsWith("Başka bir oyuncu bekleniyor")) {
-            animationTimer.start();
-        } else {
-            animationTimer.stop();
-        }
+        if (status.startsWith("Başka bir oyuncu bekleniyor")) animationTimer.start();
+        else animationTimer.stop();
     }
 
     public void reset() {
@@ -122,7 +127,28 @@ public class LobbyPanel extends JPanel {
         setStatus(" ");
     }
 
-    public void addFindGameListener(ActionListener listener) {
-        findGameButton.addActionListener(listener);
+    public void addFindGameListener(ActionListener l) {
+        findGameButton.addActionListener(l);
+    }
+
+    /* ========= inner rounded card ========= */
+    private static class Card extends JPanel {
+        private static final int ARC = 18;
+
+        Card() {
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(new Color(255, 255, 255, 240));
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), ARC, ARC);
+            g2.setColor(new Color(0xD0D0D0));
+            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, ARC, ARC);
+            g2.dispose();
+            super.paintComponent(g);
+        }
     }
 }
