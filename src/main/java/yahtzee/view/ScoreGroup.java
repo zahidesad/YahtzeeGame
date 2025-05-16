@@ -53,8 +53,8 @@ public class ScoreGroup extends JPanel implements Resettable {
 
         score = new JLabel("");
         score.setFont(score.getFont().deriveFont(Font.BOLD, 13f));
-        score.setHorizontalAlignment(SwingConstants.RIGHT);
-        score.setPreferredSize(new Dimension(50, 24));
+        score.setHorizontalAlignment(SwingConstants.CENTER);
+        score.setPreferredSize(new Dimension(60, 24));
 
         add(text);
         add(Box.createHorizontalGlue());

@@ -19,6 +19,8 @@ final class GameSession implements Runnable {
     private final Gson gson = new Gson();  // JSON utility
     private Integer p1FinalScore = null;   // First player's final score
     private Integer p2FinalScore = null;   // Second player's final score
+    private int p1CurrentScore = 0;
+    private int p2CurrentScore = 0;
 
     /**
      * Create a session with two connected player sockets.
@@ -56,11 +58,14 @@ final class GameSession implements Runnable {
                 Message m = sender.read();
 
                 // Handle concession at any time
-                if (m.type() == MessageType.END &&
-                        m.payload().getAsJsonObject().has("concede") &&
-                        m.payload().getAsJsonObject().get("concede").getAsBoolean()) {
-                    sendConcedeResults(sender, receiver);
-                    break;
+                if (m.type() == MessageType.END) {
+                    var payload = m.payload().getAsJsonObject();
+                    boolean concede = payload.has("concede") && payload.get("concede").getAsBoolean();
+                    boolean timeout = payload.has("timeout")  && payload.get("timeout") .getAsBoolean();
+                    if (concede || timeout) {
+                        sendConcedeResults(sender, receiver, timeout);
+                        break;
+                    }
                 }
 
                 // Forward roll and select messages to the other player
@@ -104,42 +109,45 @@ final class GameSession implements Runnable {
         boolean gameOver = data.get("gameOver").getAsBoolean();
         int finalScore = data.get("grand").getAsInt();
 
-        if (gameOver) {
-            if (current == p1) {
-                p1FinalScore = finalScore;
-            } else {
-                p2FinalScore = finalScore;
-            }
+        if (current == p1) {
+            p1CurrentScore = finalScore;
+            if (gameOver) p1FinalScore = finalScore;
+        } else {
+            p2CurrentScore = finalScore;
+            if (gameOver) p2FinalScore = finalScore;
         }
     }
 
     /**
      * Notify both players of a concession outcome.
      */
-    private void sendConcedeResults(PlayerHandler conceding, PlayerHandler opponent) throws IOException {
-        int concedingScore = (conceding == p1 ?
-                (p1FinalScore != null ? p1FinalScore : 0)
-                : (p2FinalScore != null ? p2FinalScore : 0));
+    private void sendConcedeResults(PlayerHandler conceding,
+                                    PlayerHandler opponent,
+                                    boolean timeout) throws IOException {
+        int concedingScore = (conceding == p1 ? p1CurrentScore : p2CurrentScore);
+        int opponentScore  = (opponent  == p1 ? p1CurrentScore : p2CurrentScore);
 
-        int opponentScore  = (opponent == p1 ?
-                (p1FinalScore != null ? p1FinalScore : 0)
-                : (p2FinalScore != null ? p2FinalScore : 0));
+        String loserReason   = timeout ? "Time-out"         : "You conceded";
+        String winnerReason  = timeout ? "Opponent timed-out" : "Opponent conceded";
 
-        JsonObject concedeRes = new JsonObject();
-        concedeRes.addProperty("yourScore", concedingScore);
-        concedeRes.addProperty("opponentScore", opponentScore);
-        concedeRes.addProperty("winner", "Opponent");
-        concedeRes.addProperty("reason", "You conceded");
+        JsonObject lose = new JsonObject();
+        lose.addProperty("yourScore", concedingScore);
+        lose.addProperty("opponentScore", opponentScore);
+        lose.addProperty("winner", "Opponent");
+        lose.addProperty("reason", loserReason);
+        lose.addProperty("concede", true);
 
-        JsonObject winRes = new JsonObject();
-        winRes.addProperty("yourScore", opponentScore);
-        winRes.addProperty("opponentScore", concedingScore);
-        winRes.addProperty("winner", "You");
-        winRes.addProperty("reason", "Opponent conceded");
+        JsonObject win  = new JsonObject();
+        win .addProperty("yourScore", opponentScore);
+        win .addProperty("opponentScore", concedingScore);
+        win .addProperty("winner", "You");
+        win .addProperty("reason", winnerReason);
+        win .addProperty("concede", false);
 
-        conceding.send(new Message(MessageType.END, concedeRes));
-        opponent.send(new Message(MessageType.END, winRes));
+        conceding.send(new Message(MessageType.END, lose));
+        opponent .send(new Message(MessageType.END, win ));
     }
+
 
     /**
      * Send final results to both players when both have finished.

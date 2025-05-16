@@ -141,6 +141,15 @@ public class LobbyPanel extends JPanel {
         else animationTimer.stop();
     }
 
+    public void setFindEnabled(boolean enabled) {
+        findGameButton.setEnabled(enabled);
+    }
+
+    public void setNickEnabled(boolean enabled) {
+        nickField.setEnabled(enabled);
+    }
+
+
     /**
      * Reset input state for a new matchmaking attempt.
      */
@@ -154,6 +163,7 @@ public class LobbyPanel extends JPanel {
         setStatus("");                 // clear label
         animationTimer.stop();         // stop "..." animation
         findGameButton.setEnabled(true);
+        nickField.setEnabled(true);
     }
 
     /**

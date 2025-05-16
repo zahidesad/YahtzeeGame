@@ -59,12 +59,16 @@ public class YahtzeeFrame extends JFrame {
                 // Connect and send HELLO
                 setNet(new NetworkClient(ip, 12345, nick, this::handleNetwork));
                 lobbyPanel.setStatus("Waiting for another player...");
+                lobbyPanel.setFindEnabled(false);
+                lobbyPanel.setNickEnabled(false);
             } catch (IOException ex) {
                 lobbyPanel.setStatus("Connection error: " + ex.getMessage());
+                lobbyPanel.setFindEnabled(true);
+                lobbyPanel.setNickEnabled(true);
             }
         });
 
-        setSize(1050, 690);
+        setSize(1080, 690);
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setLocationRelativeTo(null);
 
@@ -137,25 +141,27 @@ public class YahtzeeFrame extends JFrame {
                 case END -> {
                     JsonObject p = msg.payload().getAsJsonObject();
 
-                    boolean timedOut        = p.has("timeout") && p.get("timeout").getAsBoolean();
-                    boolean opponentConcede = p.has("concede") && p.get("concede").getAsBoolean();
+                    StringBuilder sb = new StringBuilder("Game over. ");
+                    if (p.has("reason")) {
+                        sb.append(p.get("reason").getAsString());
+                    } else {     // geriye dönük uyumluluk
+                        boolean timedOut        = p.has("timeout")  && p.get("timeout").getAsBoolean();
+                        boolean opponentConcede = p.has("concede") && p.get("concede").getAsBoolean();
 
-                    String message = timedOut
-                            ? "Game over. Opponent ran out of time."
-                            : opponentConcede
-                            ? "Game over. Opponent has conceded."
-                            : "Game over. Opponent disconnected.";
+                        sb.append( timedOut         ? "Opponent ran out of time."
+                                : opponentConcede ? "Opponent has conceded."
+                                : "Opponent disconnected.");
+                    }
 
                     if (p.has("yourScore") && p.has("opponentScore") && p.has("winner")) {
-                        message += String.format(
+                        sb.append(String.format(
                                 "\nYour score: %.0f\nOpponent score: %.0f\nWinner: %s",
                                 p.get("yourScore").getAsDouble(),
                                 p.get("opponentScore").getAsDouble(),
-                                p.get("winner").getAsString());
+                                p.get("winner").getAsString()));
                     }
 
-                    returnToLobby(message);
-
+                    returnToLobby(sb.toString());
                     try { if (getNet() != null) getNet().close(); } catch (Exception ignore) {}
                 }
                 default -> {
