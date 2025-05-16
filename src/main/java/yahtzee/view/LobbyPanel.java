@@ -150,6 +150,12 @@ public class LobbyPanel extends JPanel {
         setStatus(" ");
     }
 
+    public void resetWaitingState() {
+        setStatus("");                 // clear label
+        animationTimer.stop();         // stop "..." animation
+        findGameButton.setEnabled(true);
+    }
+
     /**
      * Register listener for the find-game button.
      */

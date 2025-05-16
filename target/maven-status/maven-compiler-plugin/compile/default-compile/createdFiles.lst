@@ -14,6 +14,7 @@ yahtzee\model\Dice.class
 yahtzee\YahtzeeFrame$1.class
 yahtzee\network\Message.class
 yahtzee\view\ScoreGroup$1.class
+yahtzee\YahtzeeFrame$2.class
 yahtzee\view\ScoreGroup.class
 yahtzee\model\Categories\FourOfAKind.class
 yahtzee\view\YahtzeeDice.class

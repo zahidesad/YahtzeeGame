@@ -10,78 +10,93 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
 /**
- * Panel combining dice controls, scoreboard view, and action buttons for a game round.
+ * Panel combining dice widgets, action buttons, and the redesigned ScoreBoard.
+ * The dice area is now vertically centered so the left side never looks empty.
  */
 public class GamePanel extends JPanel {
 
-    // UI components
-    private final YahtzeeDice[] diceComponents;   // Array of dice widgets
-    private final ScoreBoard scoreBoard;          // Score table UI
-    private final JButton rollDiceButton;         // Button to roll dice
-    private final JButton concedeButton;          // Button to concede game
-    private final GameController controller;      // Handles game logic and events
-    private final JLabel timerLabel;              // Displays remaining time
-    private final JLabel rollsLeftLabel;          // Displays rolls left count
+    private final YahtzeeDice[] diceComponents;
+    private final ScoreBoard scoreBoard;
+    private final JButton rollDiceButton;
+    private final JButton concedeButton;
+    private final JLabel timerLabel;
+    private final JLabel rollsLeftLabel;
+    private final GameController controller;
 
-    /**
-     * Construct panel with game model, network client, and parent frame.
-     */
     public GamePanel(Game game, NetworkClient net, YahtzeeFrame frame) {
-        // Root panel setup
-        setLayout(new BorderLayout());
+
+        /* ---------- overall layout ---------- */
+        setLayout(new BorderLayout(24, 0));        // gap between play-field & scoreboard
         setBorder(new EmptyBorder(12, 16, 12, 16));
         setOpaque(false);
 
-        // Top bar: dice row and roll button
-        JPanel topBar = new JPanel();
-        topBar.setOpaque(false);
-        topBar.setLayout(new BoxLayout(topBar, BoxLayout.X_AXIS));
-        topBar.setBorder(new EmptyBorder(0, 0, 6, 0));
+        /* ---------- left / centre section ---------- */
+        JPanel playField = new JPanel(new BorderLayout());
+        playField.setOpaque(false);
+
+        /* vertical box that will be CENTERed, so it sits mid-screen */
+        JPanel vbox = new JPanel();
+        vbox.setOpaque(false);
+        vbox.setLayout(new BoxLayout(vbox, BoxLayout.Y_AXIS));
+
+        /* row of dice, horizontally centred */
+        JPanel diceRow = new JPanel();
+        diceRow.setOpaque(false);
+        diceRow.setLayout(new BoxLayout(diceRow, BoxLayout.X_AXIS));
 
         diceComponents = new YahtzeeDice[5];
         for (int i = 0; i < 5; i++) {
-            diceComponents[i] = new YahtzeeDice(90);  // Create each die widget
-            topBar.add(diceComponents[i]);
-            if (i < 4) topBar.add(Box.createHorizontalStrut(10));
+            diceComponents[i] = new YahtzeeDice(90);
+            diceRow.add(diceComponents[i]);
+            if (i < 4) diceRow.add(Box.createHorizontalStrut(10));
         }
 
-        topBar.add(Box.createHorizontalStrut(20));
+        /* action buttons row */
         rollDiceButton = modernButton("Roll Dice");
-        topBar.add(rollDiceButton);
-        topBar.add(Box.createHorizontalGlue());
-        add(topBar, BorderLayout.NORTH);
+        concedeButton  = modernButton("Concede");
 
-        // Center: scoreboard in scroll pane
-        scoreBoard = new ScoreBoard();
-        JScrollPane scoreScroll = new JScrollPane(
-                scoreBoard,
-                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
-        );
-        scoreScroll.setBorder(null);
-        scoreScroll.setPreferredSize(new Dimension(780, 420));
-        add(scoreScroll, BorderLayout.CENTER);
+        JPanel btnRow = new JPanel();
+        btnRow.setOpaque(false);
+        btnRow.setLayout(new BoxLayout(btnRow, BoxLayout.X_AXIS));
+        btnRow.add(rollDiceButton);
+        btnRow.add(Box.createHorizontalStrut(14));
+        btnRow.add(concedeButton);
 
-        // Bottom bar: concede button, timer, and roll count
-        JPanel bottomBar = new JPanel();
-        bottomBar.setOpaque(false);
-        bottomBar.setLayout(new BoxLayout(bottomBar, BoxLayout.X_AXIS));
-        bottomBar.setBorder(new EmptyBorder(10, 0, 0, 0));
-
-        concedeButton = modernButton("Concede");
-        timerLabel = new JLabel("MOVE TIME: 1:30");
-        timerLabel.setFont(timerLabel.getFont().deriveFont(Font.PLAIN, 13f));
+        /* info row (small timer + rolls-left labels) */
+        timerLabel     = new JLabel("MOVE TIME: 1:30");
         rollsLeftLabel = new JLabel("ROLLS LEFT: 3");
+        timerLabel.setFont(timerLabel.getFont().deriveFont(Font.PLAIN, 13f));
         rollsLeftLabel.setFont(rollsLeftLabel.getFont().deriveFont(Font.PLAIN, 13f));
 
-        bottomBar.add(concedeButton);
-        bottomBar.add(Box.createHorizontalGlue());
-        bottomBar.add(timerLabel);
-        bottomBar.add(Box.createHorizontalStrut(18));
-        bottomBar.add(rollsLeftLabel);
-        add(bottomBar, BorderLayout.SOUTH);
+        JPanel infoRow = new JPanel();
+        infoRow.setOpaque(false);
+        infoRow.setLayout(new BoxLayout(infoRow, BoxLayout.X_AXIS));
+        infoRow.add(timerLabel);
+        infoRow.add(Box.createHorizontalStrut(18));
+        infoRow.add(rollsLeftLabel);
 
-        // Initialize controller to wire up game logic and network events
+        /* assemble the centred vertical box */
+        vbox.add(Box.createVerticalGlue());
+        vbox.add(diceRow);
+        vbox.add(Box.createVerticalStrut(20));
+        vbox.add(btnRow);
+        vbox.add(Box.createVerticalStrut(12));
+        vbox.add(infoRow);
+        vbox.add(Box.createVerticalGlue());
+
+        playField.add(vbox, BorderLayout.CENTER);
+        add(playField, BorderLayout.CENTER);
+
+        /* ---------- right-hand ScoreBoard ---------- */
+        scoreBoard = new ScoreBoard();
+        JScrollPane scoreScroll = new JScrollPane(scoreBoard,
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scoreScroll.setBorder(null);
+        scoreScroll.getViewport().setBackground(getBackground());
+        add(scoreScroll, BorderLayout.EAST);
+
+        /* ---------- hook up controller ---------- */
         controller = new GameController(
                 game, frame, diceComponents,
                 scoreBoard.getScoreGroups(),
@@ -94,21 +109,19 @@ public class GamePanel extends JPanel {
         );
     }
 
-    /**
-     * Create a styled button with modern appearance.
-     */
+    /* modern flat button helper */
     private JButton modernButton(String text) {
         JButton b = new JButton(text);
         b.setFont(b.getFont().deriveFont(Font.BOLD, 14f));
         b.setFocusPainted(false);
         b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        b.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
+        b.setBorder(BorderFactory.createEmptyBorder(8, 22, 8, 22));
         b.setBackground(new Color(0x007BFF));
         b.setForeground(Color.WHITE);
         return b;
     }
 
-    // Getter methods for external components
+    /* getters for external use (unchanged) */
     public GameController getController() { return controller; }
     public YahtzeeDice[] getDiceComponents() { return diceComponents; }
     public ScoreGroup[] getOpponentScoreGroups() { return scoreBoard.getOpponentScoreGroups(); }

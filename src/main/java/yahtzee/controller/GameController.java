@@ -220,9 +220,33 @@ public class GameController {
             int mins = timeLeft / 60;
             int secs = timeLeft % 60;
             timerLabel.setText(String.format("MOVE TIME: %d:%02d", mins, secs));
-            if (timeLeft == 0) concedeTurn();
+            if (timeLeft == 0) {
+                stopTimer();
+                JOptionPane.showMessageDialog(view,
+                        "Time is up! You lost this game.",
+                        "Timeout", JOptionPane.INFORMATION_MESSAGE);
+                forceConcede();
+            }
         }
     }
+
+    public void stopTimer() {
+        timer.stop();
+        timerLabel.setText("MOVE TIME: 1:30");
+    }
+
+    /** Called internally when the timer hits zero – concede without asking. */
+    private void forceConcede() {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("timeout", true);    // tag the END so opponent knows it’s a timeout
+        net.send(new Message(MessageType.END, payload));
+
+        /* now clean up locally in one line */
+        view.returnToLobby("Time is up! You lost this game.");
+        try { if (view.getNet() != null) view.getNet().close(); } catch (Exception ignore) {}
+    }
+
+
 
     /**
      * Set turn state: enable or disable controls and timer.
@@ -250,6 +274,7 @@ public class GameController {
                 view, "Are you sure you want to concede? Opponent will win.",
                 "Confirm", JOptionPane.YES_NO_OPTION);
         if (resp == JOptionPane.YES_OPTION) {
+            stopTimer();
             concedeButton.setEnabled(false);
             JsonObject payload = new JsonObject();
             payload.addProperty("concede", true);
@@ -257,6 +282,7 @@ public class GameController {
             view.setInGame(false);
             view.setController(null);
             try { if (view.getNet() != null) view.getNet().close(); } catch (Exception ignore) {}
+            view.resetLobbyPanel();
             view.cardLayout.show(view.mainPanel, "lobby");
         }
     }

@@ -7,6 +7,7 @@ import yahtzee.model.Game;
 import yahtzee.network.Message;
 import yahtzee.network.NetworkClient;
 import yahtzee.view.*;
+import com.formdev.flatlaf.FlatLightLaf;
 
 import javax.swing.*;
 import java.awt.*;
@@ -29,12 +30,21 @@ public class YahtzeeFrame extends JFrame {
      * Initialize frame, show lobby panel, and set up event handlers.
      */
     public YahtzeeFrame() {
+
         super("Yahtzee Game");
+        // Set a modern FlatLaf look-and-feel for the UI
+        try {
+            UIManager.setLookAndFeel(new FlatLightLaf());
+        } catch (Exception ex) {
+            System.err.println("Failed to initialize FlatLaf: " + ex.getMessage());
+        }
+
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
         lobbyPanel = new LobbyPanel();
         mainPanel.add(lobbyPanel, "lobby");
         add(mainPanel);
+        mainPanel.setBackground(new Color(0xF0F0F0));
         cardLayout.show(mainPanel, "lobby");
 
         // Handle "Find Game" button in lobby
@@ -54,7 +64,7 @@ public class YahtzeeFrame extends JFrame {
             }
         });
 
-        setSize(950, 850);
+        setSize(1050, 690);
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setLocationRelativeTo(null);
 
@@ -125,26 +135,28 @@ public class YahtzeeFrame extends JFrame {
                     }
                 }
                 case END -> {
-                    // Display results and return to lobby
-                    if (getController() != null) {
-                        JsonObject res = msg.payload().getAsJsonObject();
-                        String resultMsg = String.format(
-                                "Game over!\nYour score: %.0f\nOpponent score: %.0f\nWinner: %s",
-                                res.get("yourScore").getAsDouble(),
-                                res.get("opponentScore").getAsDouble(),
-                                res.get("winner").getAsString()
-                        );
-                        if (res.has("reason")) {
-                            resultMsg += "\nReason: " + res.get("reason").getAsString();
-                        }
-                        JOptionPane.showMessageDialog(this, resultMsg);
-                        cardLayout.show(mainPanel, "lobby");
-                        lobbyPanel.reset();
-                        setInGame(false);
-                        setController(null);
-                        try { if (getNet() != null) getNet().close(); } catch (Exception ignore) {}
+                    JsonObject p = msg.payload().getAsJsonObject();
 
+                    boolean timedOut        = p.has("timeout") && p.get("timeout").getAsBoolean();
+                    boolean opponentConcede = p.has("concede") && p.get("concede").getAsBoolean();
+
+                    String message = timedOut
+                            ? "Game over. Opponent ran out of time."
+                            : opponentConcede
+                            ? "Game over. Opponent has conceded."
+                            : "Game over. Opponent disconnected.";
+
+                    if (p.has("yourScore") && p.has("opponentScore") && p.has("winner")) {
+                        message += String.format(
+                                "\nYour score: %.0f\nOpponent score: %.0f\nWinner: %s",
+                                p.get("yourScore").getAsDouble(),
+                                p.get("opponentScore").getAsDouble(),
+                                p.get("winner").getAsString());
                     }
+
+                    returnToLobby(message);
+
+                    try { if (getNet() != null) getNet().close(); } catch (Exception ignore) {}
                 }
                 default -> {
                     // Ignore other message types
@@ -152,6 +164,31 @@ public class YahtzeeFrame extends JFrame {
             }
         });
     }
+
+    //  YahtzeeFrame.java  (simple forwarder)
+    public void resetLobbyPanel() {
+        lobbyPanel.resetWaitingState();
+    }
+
+    /*  Bring both UI and state back to the Lobby in a single call.  */
+    public void returnToLobby(String message) {
+        JOptionPane.showMessageDialog(this, message);
+
+        if (getController() != null) {
+            getController().stopTimer();         // make sure no timer keeps ticking
+        }
+        setInGame(false);
+
+        if (gamePanel != null) {                // remove old game UI
+            mainPanel.remove(gamePanel);
+            gamePanel = null;
+        }
+
+        lobbyPanel.resetWaitingState();          // clear “Waiting …” text/animation
+        cardLayout.show(mainPanel, "lobby");
+    }
+
+
 
     /* ---------- Getter proxies for testing or UI updates ---------- */
     public YahtzeeDice[] getDiceComponents() {
