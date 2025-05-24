@@ -38,6 +38,12 @@
 *Both clients open a persistent TCP socket to the public AWS server.  
 Each pair of sockets is handled by one `GameSession` running inside the server’s thread pool.*
 
+## Low-Level Architecture
+
+<p align="center">
+  <img src="src\main\resources\yahtzee\images\diagram.png" alt="Architecture diagram" width="650"/>
+</p>
+
 ---
 
 ## 📂 Project Structure
